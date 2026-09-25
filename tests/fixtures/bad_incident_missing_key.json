@@ -1,0 +1,5 @@
+{
+  "incident_id": "TEST-001",
+  "service_name": "테스트 서비스",
+  "status_summary": "필수 키 'logs'가 없는 잘못된 입력 파일 (회귀 테스트용)"
+}

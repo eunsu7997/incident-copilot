@@ -7,6 +7,7 @@
       (내용 경고가 있어도 0 — 형식은 맞다는 뜻일 뿐 내용까지 정확하다는 뜻은 아님)
   1 = LLM 응답 자체를 받지 못함 (네트워크/Ollama 오류)
   2 = 응답은 받았지만 형식 검사(JSON 파싱 또는 스키마)에 실패함
+  3 = 입력 파일(장애 JSON 또는 --offline-response 파일)을 찾거나 해석하는 데 실패함
 """
 import argparse
 import datetime
@@ -45,7 +46,23 @@ def run(argv=None) -> int:
     args = build_arg_parser().parse_args(argv)
     is_offline_replay = bool(args.offline_response)
 
-    incident = load_incident(args.incident_file)
+    try:
+        incident = load_incident(args.incident_file)
+    except FileNotFoundError:
+        print(f"[입력 오류] 장애 파일을 찾을 수 없습니다: {args.incident_file}")
+        return 3
+    except json.JSONDecodeError as e:
+        print(f"[입력 오류] 장애 파일이 올바른 JSON이 아닙니다: {args.incident_file}\n  {e}")
+        return 3
+    except KeyError as e:
+        print(f"[입력 오류] 장애 파일에 필수 항목 {e}가 없습니다: {args.incident_file}")
+        return 3
+    except TypeError as e:
+        print(
+            f"[입력 오류] 장애 파일의 형식이 올바르지 않습니다(예: 'logs'는 객체(dict) 배열이어야 함): "
+            f"{args.incident_file}\n  {e}"
+        )
+        return 3
     prompt_text = incident.to_prompt_text()
 
     print("=" * 60)
@@ -65,7 +82,11 @@ def run(argv=None) -> int:
             f"아래 결과는 '{args.offline_response}'에 사람이 미리 작성해 둔 예시 응답을 "
             f"검증 로직에 통과시킨 것이며, 실제 LLM 실행 결과가 아닙니다 (검증 로직 데모용)."
         )
-        raw_response = Path(args.offline_response).read_text(encoding="utf-8")
+        try:
+            raw_response = Path(args.offline_response).read_text(encoding="utf-8")
+        except FileNotFoundError:
+            print(f"[입력 오류] --offline-response 파일을 찾을 수 없습니다: {args.offline_response}")
+            return 3
     else:
         model_label = args.model
         print(f"\nOllama 모델 호출 중... (model={args.model})")

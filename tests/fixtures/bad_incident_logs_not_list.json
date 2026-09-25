@@ -1,0 +1,6 @@
+{
+  "incident_id": "TEST-002",
+  "service_name": "테스트 서비스",
+  "status_summary": "logs가 배열이 아니라 문자열인 잘못된 입력 파일 (회귀 테스트용)",
+  "logs": "이건 배열이 아니라 그냥 문자열입니다"
+}

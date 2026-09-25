@@ -107,3 +107,44 @@ def test_same_second_consecutive_runs_keep_separate_files_with_preserved_raw_res
     for c in contents:
         assert c["processing_status"]["schema_valid"] is True
         assert c["parsed_analysis"] is not None
+
+
+# --- 아래부터는 입력 오류 처리 회귀 테스트 (제출 전 최종 점검에서 추가) ---
+# 예전에는 아래 상황 전부 Python traceback이 사용자에게 그대로 노출됐다(사용자 친화적인
+# 오류 메시지도, 구분된 종료 코드도 없었다). 지금은 모두 종료 코드 3과 "[입력 오류] ..."
+# 메시지로 처리된다.
+
+
+def test_cli_missing_incident_file_returns_clean_error(capsys):
+    exit_code = cli.run(["data/이런_파일은_없다.json"])
+    assert exit_code == 3
+    assert "[입력 오류]" in capsys.readouterr().out
+
+
+def test_cli_invalid_json_incident_file_returns_clean_error(capsys):
+    fixture = FIXTURES_DIR / "bad_incident_invalid_json.json"
+    exit_code = cli.run([str(fixture)])
+    assert exit_code == 3
+    assert "[입력 오류]" in capsys.readouterr().out
+
+
+def test_cli_incident_file_missing_required_key_returns_clean_error(capsys):
+    fixture = FIXTURES_DIR / "bad_incident_missing_key.json"
+    exit_code = cli.run([str(fixture)])
+    assert exit_code == 3
+    assert "[입력 오류]" in capsys.readouterr().out
+
+
+def test_cli_incident_file_logs_wrong_type_returns_clean_error(capsys):
+    fixture = FIXTURES_DIR / "bad_incident_logs_not_list.json"
+    exit_code = cli.run([str(fixture)])
+    assert exit_code == 3
+    assert "[입력 오류]" in capsys.readouterr().out
+
+
+def test_cli_missing_offline_response_file_returns_clean_error(capsys):
+    exit_code = cli.run(
+        ["data/sample_incident_1.json", "--offline-response", "data/이런_응답_파일도_없다.txt"]
+    )
+    assert exit_code == 3
+    assert "[입력 오류]" in capsys.readouterr().out
