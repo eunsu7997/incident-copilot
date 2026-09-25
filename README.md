@@ -98,6 +98,9 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
 ```
 전체 결과: `outputs/result_INC-2026-0001_20260925_121228.json`
 
+![정상 실행 결과](screenshots/normal_case.png)
+위 스크린샷은 `run.py`로 샘플 1(order-api)을 정상 실행했을 때의 실제 화면이다.
+
 **샘플 2 (notification-worker, 정보가 부족한 가상 장애 — 자동 검증의 한계를 보여준 실제 모델 응답)** — 명령: `python run.py data\sample_incident_2_tricky.json`
 
 ```
@@ -154,6 +157,9 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
   ⚠ 존재하지 않는 로그 ID를 인용했습니다 (환각 의심): ['LOG-999']
 ```
 전체 결과: `outputs/result_INC-2026-0001_20260925_122618.json`
+
+![존재하지 않는 로그 ID 경고](screenshots/hallucination_waring.png)
+위 스크린샷은 존재하지 않는 로그 ID(`LOG-999`)를 인용하면 경고가 뜨는 화면이다. `--offline-response` 옵션으로 사람이 미리 작성한 예시 응답을 검증 로직에 통과시킨 것이며, 실제 LLM 실행 결과가 아니다.
 
 ### 4-5. 실행 중 실제로 발견하고 고친 버그
 
