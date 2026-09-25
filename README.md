@@ -19,11 +19,15 @@ ITS는 여기서 "IT 서비스"가 아니라 **지능형교통체계(Intelligent
 - 담당자는 제한된 정보로 "가장 의심되는 원인"을 먼저 추정하고, 현장에 나가기 전에 "무엇을 더 확인해야 하는지"를 정리한다.
 - 이때 근거 없이 원인을 확정하면 잘못된 조치(예: 불필요한 장비 교체, 헛걸음)로 이어질 수 있다. 그래서 "이 로그 때문에 이렇게 의심한다"는 근거를 남기고, "아직 모르는 것"을 분리해서 인지하는 습관이 실제로 중요하다.
 
-이 프로젝트는 그 과정 중 초기 원인 추정과 근거 정리 단계를 LLM이 보조하도록 만든 것이며, 최종 원인 판단과 현장 조치는 여전히 사람이 한다는 원칙을 코드로도 강제한다(§6 참고).
+이 프로젝트는 그 과정 중 초기 원인 추정과 근거 정리 단계를 LLM이 보조하도록 만든 것이며, 최종 원인 판단과 현장 조치는 여전히 사람이 해야 한다는 점을 프로그램 출력에 명시적으로 표시한다(§6 참고). 다만 이건 화면/결과 파일에 문구로 안내하는 것일 뿐, 사람이 실제로 검토했는지를 프로그램이 기술적으로 강제하지는 않는다.
 
 ## 3. 실행 방법 (이 PC에서 실제로 확인한 순서)
 
-이 프로젝트는 로컬 PC(원격/클라우드 작업 공간 아님)에서 실행했다. 확인한 근거: 컴퓨터 이름 `DESKTOP-0DO0IA6`, 도메인 미가입(개인 PC), 메인보드 모델 `MS-7D48`(가상머신이 아닌 실제 데스크톱 부품), OS `Windows 11 Home`.
+이 프로젝트는 원격/클라우드 작업 공간이 아닌 로컬 PC에서 실행했다(도메인에 가입되지 않은 개인 PC로 확인함). 재현에 필요한 환경 정보만 남긴다.
+
+- OS: Windows 11 Home
+- Python: 3.14.7
+- Ollama: 0.34.4, 모델 `llama3.2:1b`
 
 ```powershell
 # 1) 가상환경(venv, virtual environment = 프로젝트 전용 파이썬 환경) 생성
@@ -44,6 +48,9 @@ ollama pull llama3.2:1b
 # 6) 실제 LLM 호출 (가상 장애 데이터 1건)
 .\.venv\Scripts\python.exe run.py data\sample_incident_1.json
 .\.venv\Scripts\python.exe run.py data\sample_incident_2_tricky.json
+
+# 7) (데모) 존재하지 않는 로그 ID 경고를 실제 CLI 화면으로 보고 싶다면 — LLM 호출 없이 검증 로직만 실행
+.\.venv\Scripts\python.exe run.py data\sample_incident_1.json --offline-response data\demo_manual_response_missing_id.txt
 ```
 
 `data/sample_incident_1.json`, `data/sample_incident_2_tricky.json`은 모두 **가상(virtual) 데이터**이며 실제 회사/서비스와 무관하다.
@@ -72,7 +79,7 @@ tests/test_validator.py::test_non_json_response_marked_as_parse_failure PASSED
 6 passed in 0.02s
 ```
 
-이 중 `test_key_with_stray_whitespace_is_normalized`와 `test_bracketed_log_id_is_normalized_and_not_treated_as_hallucination`은 실제로 실행 중 발견한 버그(아래 4-4)를 재현하는 테스트다.
+이 중 `test_key_with_stray_whitespace_is_normalized`와 `test_bracketed_log_id_is_normalized_and_not_treated_as_hallucination`은 실제로 실행 중 발견한 버그(아래 4-5)를 재현하는 테스트다.
 
 ### 4-3. 실제 LLM 호출 결과 (model: `llama3.2:1b`, Ollama 로컬 실행)
 
@@ -91,7 +98,7 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
 ```
 전체 결과: `outputs/result_INC-2026-0001_20260925_121228.json`
 
-**샘플 2 (notification-worker, 정보가 부족한 가상 장애 — 근거 없는 주장 유도용)** — 명령: `python run.py data\sample_incident_2_tricky.json`
+**샘플 2 (notification-worker, 정보가 부족한 가상 장애 — 자동 검증의 한계를 보여준 실제 모델 응답)** — 명령: `python run.py data\sample_incident_2_tricky.json`
 
 ```
 [의심 원인]
@@ -111,9 +118,44 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
 ```
 전체 결과: `outputs/result_INC-2026-0002_20260925_121403.json`
 
-이 샘플 2 결과가 이 프로젝트의 핵심 포인트를 실제로 보여준다: **참조한 로그 ID 2개는 모두 실제로 존재한다("존재 확인" 통과). 하지만 "의심 원인"은 입력 상태 요약을 그대로 복사한 문장이고, "다음 확인 방법"과 "아직 모르는 것"도 의미 없는 문장을 반복한다.** 즉 ID 존재 확인을 통과했다고 해서 그 내용이 실제로 근거 있는 판단이라는 뜻이 아니다. 이건 미리 짜서 보여준 예시가 아니라, 정보가 부족한 입력을 줬을 때 작은 모델(1B)이 실제로 낸 응답이다.
+이 샘플 2 결과는 **자동 검증(로그 ID 존재 확인)이 통과해도 AI 답변 내용 자체가 부실할 수 있다는 것**을 실제 모델 응답으로 보여준다. 정확히 말하면: 참조한 로그 ID 2개는 모두 실제로 존재해서 "참조 ID 존재 확인"은 통과했다. 하지만 "의심 원인"은 입력 상태 요약을 그대로 복사한 문장이고, "다음 확인 방법"과 "아직 모르는 것"도 의미 없는 문장을 반복한다. 즉 이 프로그램의 자동 검증은 "인용한 ID가 실제로 존재하는가"만 확인할 뿐, "AI가 낸 내용이 실제로 쓸모 있는 판단인가"는 검사하지 못한다는 한계를 그대로 드러낸다. 이건 미리 짜서 보여준 예시가 아니라, 정보가 부족한 입력을 줬을 때 작은 모델(1B)이 실제로 낸 응답이다.
 
-### 4-4. 실행 중 실제로 발견하고 고친 버그
+### 4-4. 존재하지 않는 로그 ID를 인용하면 실제로 경고가 뜨는 장면 (실제 CLI 실행)
+
+위 §4-2의 pytest 테스트는 이 경고 로직이 코드상으로 맞다는 것만 보여준다. 실제 CLI 화면에서도 같은 동작을 보여주기 위해, 사람이 직접 작성한 예시 응답 파일(`data/demo_manual_response_missing_id.txt`, 실제 LLM 호출이 아님을 명시)에 실제로 존재하지 않는 로그 ID `LOG-999`를 하나 끼워 넣고, `--offline-response` 옵션으로 실제 CLI(`run.py`)의 검증 로직을 통과시켰다.
+
+입력한 예시 응답(`data/demo_manual_response_missing_id.txt`, 사람이 직접 작성 — 실제 LLM 응답 아님):
+```json
+{
+  "suspected_cause": "DB 커넥션 풀 부족으로 인한 타임아웃으로 추정됩니다.",
+  "referenced_log_ids": ["LOG-003", "LOG-999"],
+  "next_steps": ["DB 커넥션 풀 설정 변경 이력을 확인한다"],
+  "unknowns": ["LOG-999가 정확히 어떤 로그인지 확인이 필요하다"]
+}
+```
+(`sample_incident_1.json`에는 `LOG-001`~`LOG-007`만 있고 `LOG-999`는 없다.)
+
+실행 명령과 실제 화면:
+```
+> python run.py data\sample_incident_1.json --offline-response data\demo_manual_response_missing_id.txt
+
+[알림] --offline-response 옵션 사용 중: 실제 LLM을 호출하지 않습니다.
+아래 결과는 'data\demo_manual_response_missing_id.txt'에 사람이 미리 작성해 둔 예시 응답을 검증 로직에 통과시킨 것이며, 실제 LLM 실행 결과가 아닙니다 (검증 로직 데모용).
+
+[참조한 로그 ID]
+['LOG-003', 'LOG-999']
+
+--- 검증 결과 (이 프로그램이 자동으로 확인한 것) ---
+[참조 ID 존재 확인] 1/2개가 실제 입력 로그에 존재함, 존재하지 않는 ID: ['LOG-999']
+  -> 주의: 이건 'ID가 입력 로그 목록에 있는가'만 자동으로 확인한 것입니다. 그 로그가 실제로 의심 원인을 뒷받침하는지는 검사하지 않습니다.
+[원인 판단] AI의 추정일 뿐이며, 실제로 맞는지는 사람이 로그 내용을 읽고 직접 검토해야 합니다.
+
+--- 추가 검증 경고 ---
+  ⚠ 존재하지 않는 로그 ID를 인용했습니다 (환각 의심): ['LOG-999']
+```
+전체 결과: `outputs/result_INC-2026-0001_20260925_122618.json`
+
+### 4-5. 실행 중 실제로 발견하고 고친 버그
 
 1. `llama3.2:1b` 모델이 JSON 키 앞에 공백을 붙여서 `" suspected_cause"`처럼 출력한 적이 있었다(원본 응답은 `outputs/result_INC-2026-0001_20260925_120252.json`에 남아 있음). 그 결과 파서가 이 키를 못 찾아서 "의심 원인"이 빈 문자열로 나왔다. `incident_copilot/validator.py`에서 키를 `strip()`으로 정규화해서 고쳤다. 재현 테스트: `test_key_with_stray_whitespace_is_normalized`.
 2. 같은 모델이 `referenced_log_ids`를 `["[LOG-101]", "[LOG-102]"]`처럼 대괄호를 붙여서 낸 적이 있었다(프롬프트에서 로그를 `- [LOG-101] ...` 형태로 보여줬기 때문에 그대로 따라 적은 것으로 보임). 이때 검증 로직이 `[LOG-101]`과 `LOG-101`을 다른 문자열로 보고 "존재하지 않는 로그 ID(환각 의심)"라고 잘못 경고했다(원본 응답은 `outputs/result_INC-2026-0002_20260925_121302.json`에 남아 있음). `_normalize_log_id()`를 추가해서 대괄호·공백을 제거한 뒤 비교하도록 고쳤다. 재현 테스트: `test_bracketed_log_id_is_normalized_and_not_treated_as_hallucination`.

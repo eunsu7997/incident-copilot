@@ -1,0 +1,6 @@
+{
+  "suspected_cause": "DB 커넥션 풀 부족으로 인한 타임아웃으로 추정됩니다.",
+  "referenced_log_ids": ["LOG-003", "LOG-999"],
+  "next_steps": ["DB 커넥션 풀 설정 변경 이력을 확인한다"],
+  "unknowns": ["LOG-999가 정확히 어떤 로그인지 확인이 필요하다"]
+}

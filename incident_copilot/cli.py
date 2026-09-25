@@ -23,6 +23,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("incident_file", help="장애 입력 JSON 파일 경로 (예: data/sample_incident_1.json)")
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"사용할 Ollama 모델 이름 (기본값: {DEFAULT_MODEL})")
     parser.add_argument("--no-llm", action="store_true", help="LLM을 호출하지 않고 입력 로그 검증 로직만 테스트합니다.")
+    parser.add_argument(
+        "--offline-response",
+        help=(
+            "실제 LLM을 호출하지 않고, 이 경로의 텍스트 파일을 'AI 응답'으로 간주해서 "
+            "검증 로직(존재하지 않는 로그 ID 경고 등)만 실제로 실행해 봅니다. "
+            "데모/테스트 용도이며, 이 옵션을 쓰면 실제 LLM 실행 결과가 아니라는 점을 화면에 표시합니다."
+        ),
+    )
     return parser
 
 
@@ -42,13 +50,23 @@ def run(argv=None) -> int:
         print("--no-llm 옵션이 켜져 있어 실제 LLM 호출을 하지 않았습니다.")
         return 0
 
-    print(f"\nOllama 모델 호출 중... (model={args.model})")
-    try:
-        raw_response = call_ollama(args.model, prompt_text)
-    except OllamaError as e:
-        print(f"\n[실패] LLM 호출 중 오류가 발생했습니다:\n{e}")
-        _save_result(incident.incident_id, args.model, prompt_text, None, [str(e)], success=False)
-        return 1
+    if args.offline_response:
+        model_label = f"OFFLINE-REPLAY:{args.offline_response}"
+        print(
+            f"\n[알림] --offline-response 옵션 사용 중: 실제 LLM을 호출하지 않습니다.\n"
+            f"아래 결과는 '{args.offline_response}'에 사람이 미리 작성해 둔 예시 응답을 "
+            f"검증 로직에 통과시킨 것이며, 실제 LLM 실행 결과가 아닙니다 (검증 로직 데모용)."
+        )
+        raw_response = Path(args.offline_response).read_text(encoding="utf-8")
+    else:
+        model_label = args.model
+        print(f"\nOllama 모델 호출 중... (model={args.model})")
+        try:
+            raw_response = call_ollama(args.model, prompt_text)
+        except OllamaError as e:
+            print(f"\n[실패] LLM 호출 중 오류가 발생했습니다:\n{e}")
+            _save_result(incident.incident_id, args.model, prompt_text, None, [str(e)], success=False)
+            return 1
 
     analysis = parse_ai_response(raw_response)
     result = validate(analysis, incident.valid_log_ids())
@@ -82,7 +100,7 @@ def run(argv=None) -> int:
 
     _save_result(
         incident.incident_id,
-        args.model,
+        model_label,
         prompt_text,
         analysis,
         result.warnings,
