@@ -1,9 +1,14 @@
 # 평가 결과 — CCTV 네트워크 어댑터 장애 사례 (조치 전 / 조치 후)
 
-> **이 평가는 AI(Claude Code)가 작성한 검토 초안이며, 아직 사용자(사람)가 확인하지 않은 상태다.**
-> 아래는 사례 딱 2건(조치 전 1건 + 조치 후 1건)에 대한 결과이며, 이 프로젝트 전체의 정확도나
-> 성능을 일반화한 결론이 아니다. 기준은 `docs/eval_criteria_adapter_case.md`에 모델 실행 **전에**
-> 고정해 두었다(커밋 `ffde538`).
+> **평가 판정 초안은 Claude Code가 작성했으며, 최종 제출 전 사람(사용자)이 원본 응답과 평가 근거를
+> 직접 확인해야 한다.** SK하이닉스 해커톤 2026 제출 전 최종 점검 과정에서 Claude Code가 아래 표의
+> 판정을 `evidence/result_adapter_before.json`·`evidence/result_adapter_after.json`(=
+> `outputs/result_INC-2026-0007_...json`·`outputs/result_INC-2026-0008_...json`과 동일)의 실제
+> `raw_llm_response`·`parsed_analysis` 값과 다시 대조해 인용문이 원본과 정확히 일치하는지 재확인했다
+> — 하지만 이건 Claude Code 자신의 재확인일 뿐, **사람이 검토를 마쳤다는 뜻은 아니다.** 아래는 사례
+> 딱 2건(조치 전 1건 + 조치 후 1건)에 대한 결과이며, 이 프로젝트 전체의 정확도나 성능을 일반화한
+> 결론이 아니다. 기준은 `docs/eval_criteria_adapter_case.md`에 모델 실행 **전에** 고정해 두었다
+> (커밋 `ffde538`).
 
 ## 실행 기록 (재시도 원칙 관련)
 
@@ -11,8 +16,8 @@
   코드 0(응답 수신 + 형식 검사 통과)으로 첫 시도에 끝났고, 기술적 실패가 없었으므로 재시도하지
   않았다. 응답 내용이 마음에 들지 않아서 다시 실행하지 않았다 — 아래 결과는 각각의 유일한(첫 번째)
   실행 결과다.
-- 조치 전 결과 파일: `outputs/result_INC-2026-0007_20260925_163256_fc04d6e6.json`
-- 조치 후 결과 파일: `outputs/result_INC-2026-0008_20260925_163306_2584a164.json`
+- 조치 전 결과 파일(로컬 생성 위치): `outputs/result_INC-2026-0007_20260925_163256_fc04d6e6.json` / GitHub 사본: [`evidence/result_adapter_before.json`](../evidence/result_adapter_before.json)
+- 조치 후 결과 파일(로컬 생성 위치): `outputs/result_INC-2026-0008_20260925_163306_2584a164.json` / GitHub 사본: [`evidence/result_adapter_after.json`](../evidence/result_adapter_after.json)
 - 실행 명령:
   ```powershell
   .\.venv\Scripts\python.exe run.py data\sample_incident_7_adapter_before.json
@@ -26,7 +31,7 @@
 - 참조한 로그 ID: `['LOG-601', 'LOG-602', 'LOG-605', 'LOG-606', 'LOG-607']` (5/5 존재 확인됨)
 - 다음 확인 방법: `"인터넷 연결을 재확인"`, `"신뢰한 스위치 포트를 확인하고 연결을 재확인"`(3회 반복)
   — 원문은 한국어·독일어(`prüfen`)·힌디어 문자가 섞여서 깨진 형태로 나왔다(`"인터넷 कनेक्शन을
-  재prüfen"`). 원문 그대로는 `outputs/result_INC-2026-0007_20260925_163256_fc04d6e6.json`에 있다.
+  재prüfen"`). 원문 그대로는 `outputs/result_INC-2026-0007_20260925_163256_fc04d6e6.json`(로컬) 또는 [`evidence/result_adapter_before.json`](../evidence/result_adapter_before.json)(GitHub)에 있다.
 
 | # | 기준 | 판정 | 근거 |
 |---|---|---|---|

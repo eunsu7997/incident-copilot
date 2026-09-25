@@ -4,6 +4,24 @@
 
 SK하이닉스 AI 해커톤 2026 제출용 개인 포트폴리오이며, 기존에 있던 다른 대형 프로젝트(FastAPI/Docker/K8s)와는 완전히 별개다.
 
+> **이 프로젝트는 "AI가 맞는 답을 낸다"고 가정하지 않는다.** AI가 낸 답을 운영 증거(로그)와 대조하고,
+> 기계가 검증 가능한 부분(로그 ID 존재 여부, 응답 형식)과 사람이 판단해야 하는 부분(원인이 실제로
+> 맞는가, 조치를 어떻게 할 것인가)을 분리해서 보여주는 것이 이 프로젝트의 전부다.
+
+## 한눈에 보기 (심사위원용 요약)
+
+| 항목 | 내용 |
+|---|---|
+| 무엇인지 | 장애 로그를 넣으면 로컬 LLM(Ollama `llama3.2:1b`)이 의심 원인·근거 로그 ID·다음 확인 방법·아직 모르는 것을 제시하는 Python CLI 도구 (§1) |
+| 왜 만들었는지 | AI가 "그럴듯하지만 근거 없는" 원인을 내도 걸러낼 방법이 없다는 문제를 다루기 위해 (§1) |
+| ITS 현장 경험과의 관련 | ITS(지능형교통체계) 현장 CCTV/VMS 장비 유지보수 경험에서, 제한된 정보로 원인을 추정하고 "아직 모르는 것"을 분리해 인지하는 습관을 코드로 옮김 (§2) |
+| AI를 어디에 썼는지 | 로그를 보고 1차 원인 후보·확인 방법을 제안하는 부분에만 썼다. 최종 판단·조치 결정에는 쓰지 않는다 (§6) |
+| AI 답변을 어떻게 검증하는지 | 프로그램이 자동으로 (1) JSON 형식·필수 키·자료형 검사, (2) 인용한 로그 ID의 실제 존재 여부 확인, (3) 근거 없음/과확신 표현/빈 필드 같은 내용 경고를 낸다. "내용이 실제로 맞는가"는 검사하지 못한다 — 의도적인 한계다 (§4, §7) |
+| 실제 실행 증거 | 실제 Ollama 호출 결과가 `outputs/`에 25건 쌓여 있고, 핵심 4건은 GitHub에서 바로 볼 수 있도록 [`evidence/`](evidence/)에 사본으로 올려뒀다 (§4, [`evidence/README.md`](evidence/README.md)) |
+| 테스트 | `pytest tests/ -q` 기준 **25개 전부 통과**(§4-2). GitHub Actions(`.github/workflows/tests.yml`)로 push/PR마다 자동 실행되도록 구성했다 — 다만 실제 GitHub Actions 실행 결과는 아직 확인 전이다(§4-9) |
+| 한계 | 근거 없는 주장 감지는 규칙 기반, 작은 모델(1B)의 응답 품질 편차, 내용 적절성 자체는 검사 못함 등 — 전체 목록 §5 |
+| 사람 최종 판단 원칙 | 프로그램 출력·결과 파일 모두에 "최종 판단은 사람"이라는 문구를 명시한다. 다만 이건 화면에 안내 문구를 표시하는 것일 뿐 기술적으로 강제하지는 않는다 (§2, §6) |
+
 ## 1. 문제 정의
 
 운영 중인 시스템에 장애가 나면 담당자는 짧은 시간 안에 로그와 상태 정보만 보고 "무엇이 원인일 것 같은지"를 추정해야 한다. 이때 흔한 문제는 두 가지다.
@@ -62,6 +80,12 @@ Get-Content outputs\result_INC-2026-0001_20260925_143501.json
 
 ## 4. 실제 실행 결과
 
+**`outputs/` vs `evidence/` 구분**: `outputs/`는 이 프로그램을 실행할 때마다 결과가 실제로 생성되는
+로컬 위치다(`.gitignore`에 의해 GitHub에는 올라가지 않는다). `evidence/`는 그중 핵심 사례 4건만
+골라 GitHub에서 심사자가 직접 열어볼 수 있도록 그대로 복사해 둔 증거 사본이다(`evidence/README.md`
+참고). 아래 §4-3, §4-4에서 `evidence/`에 사본이 있는 파일은 그 링크로, 없는 파일은 `outputs/`
+경로를 그대로 적되 "로컬에만 있고 GitHub에는 없음"을 명시한다.
+
 ### 4-1. venv 문제 (오늘 확인한 사실만 기록 — 어제 오류의 정확한 원인은 추측하지 않음)
 
 - 어제 venv 생성이 실패했다고 했으나, 그때의 정확한 오류 메시지를 오늘 다시 확인하거나 재현할 수는 없었다. 따라서 어제 실패의 원인을 추측해서 단정하지 않는다.
@@ -78,6 +102,14 @@ Get-Content outputs\result_INC-2026-0001_20260925_143501.json
 tests/test_cli.py::test_cli_valid_offline_response_exits_zero_and_saves_expected_fields PASSED
 tests/test_cli.py::test_cli_malformed_offline_response_exits_nonzero_and_records_format_errors PASSED
 tests/test_cli.py::test_same_second_consecutive_runs_keep_separate_files_with_preserved_raw_responses PASSED
+tests/test_cli.py::test_cli_missing_incident_file_returns_clean_error PASSED
+tests/test_cli.py::test_cli_invalid_json_incident_file_returns_clean_error PASSED
+tests/test_cli.py::test_cli_incident_file_missing_required_key_returns_clean_error PASSED
+tests/test_cli.py::test_cli_incident_file_logs_wrong_type_returns_clean_error PASSED
+tests/test_cli.py::test_cli_missing_offline_response_file_returns_clean_error PASSED
+tests/test_ollama_client.py::test_call_ollama_connection_failure_raises_ollama_error PASSED
+tests/test_ollama_client.py::test_call_ollama_timeout_raises_ollama_error PASSED
+tests/test_ollama_client.py::test_call_ollama_non_200_status_raises_ollama_error PASSED
 tests/test_validator.py::test_normal_case_no_warnings PASSED
 tests/test_validator.py::test_hallucinated_log_id_triggers_warning PASSED
 tests/test_validator.py::test_ungrounded_overconfident_claim_triggers_multiple_warnings PASSED
@@ -92,12 +124,16 @@ tests/test_validator.py::test_missing_required_key_is_reported PASSED
 tests/test_validator.py::test_wrong_type_for_suspected_cause_is_reported PASSED
 tests/test_validator.py::test_empty_suspected_cause_triggers_content_warning PASSED
 tests/test_validator.py::test_empty_next_steps_triggers_content_warning PASSED
-17 passed in 0.24s
+25 passed in 0.32s
 ```
 
-**테스트 개수 계산 (오해 방지를 위해 명시적으로 적는다):** 이 프로젝트의 테스트는 처음에 4개였고(§4-4 이전 커밋), 이후 두 차례에 걸쳐 늘었다. `tests/test_validator.py`는 기존 6개(그중 `test_non_json_response_marked_as_parse_failure`는 이름만 `test_non_json_response_is_reported_as_format_error`로 바뀜)에 코드 리뷰 대응으로 **8개**(`test_top_level_null_response_does_not_crash` ~ `test_empty_next_steps_triggers_content_warning`)를 새로 추가해 총 14개다. `tests/test_cli.py`는 이번에 신설한 파일로 **3개**(형식 유효, 형식 오류, 같은 초 연속 실행 파일 보존)다. 합쳐서 **14 + 3 = 17개**가 전체 테스트 수다. (이전 커밋 메시지/설명에 "12개 추가"라고 쓴 적이 있는데, 정확히는 10개 추가였다 — 표현이 부정확했던 것을 여기서 바로잡는다.)
+**테스트 개수**: `tests/test_validator.py` 14개(AI 응답 파싱/형식 검증/내용 경고), `tests/test_cli.py`
+8개(형식 유효·오류, 같은 초 연속 실행 보존, 입력 파일 오류 5종 — 아래 4-8), `tests/test_ollama_client.py`
+3개(Ollama 연결 실패/timeout/비정상 상태코드 — 아래 4-8)로 총 **25개**다. (이전 버전 README에서
+테스트 개수를 "12개 추가", "10개 추가" 등으로 잘못 적은 적이 있었다 — 지금은 위 pytest 출력과
+정확히 대조해서 적었다.)
 
-이 중 `test_key_with_stray_whitespace_is_normalized`와 `test_bracketed_log_id_is_normalized_and_not_treated_as_hallucination`은 실제로 실행 중 발견한 버그(아래 4-5)를 재현하는 테스트다. `test_top_level_null_response_does_not_crash`부터 `test_empty_next_steps_triggers_content_warning`까지 8개와 `test_cli.py`의 처음 2개는 코드 리뷰에서 발견된 형식 검증 문제(아래 4-6)를, `test_same_second_consecutive_runs_keep_separate_files_with_preserved_raw_responses`는 결과 파일 덮어쓰기 문제(아래 4-7)를 재현하는 테스트다.
+이 중 `test_key_with_stray_whitespace_is_normalized`와 `test_bracketed_log_id_is_normalized_and_not_treated_as_hallucination`은 실제로 실행 중 발견한 버그(아래 4-5)를, `test_top_level_null_response_does_not_crash`부터 `test_empty_next_steps_triggers_content_warning`까지 8개와 `test_cli.py`의 처음 2개는 코드 리뷰에서 발견된 형식 검증 문제(아래 4-6)를, `test_same_second_consecutive_runs_keep_separate_files_with_preserved_raw_responses`는 결과 파일 덮어쓰기 문제(아래 4-7)를, 나머지 `test_cli_*_returns_clean_error` 5개와 `test_ollama_client.py` 3개는 제출 전 최종 점검에서 발견된 입력 오류 처리 문제(아래 4-8)를 재현하는 테스트다.
 
 ### 4-3. 실제 LLM 호출 결과 (model: `llama3.2:1b`, Ollama 로컬 실행)
 
@@ -118,7 +154,7 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
   -> 주의: 이건 'ID가 입력 로그 목록에 있는가'만 자동으로 확인한 것입니다. 그 로그가 실제로 의심 원인을 뒷받침하는지, 원인 분석 내용이 정확한지는 검사하지 않습니다.
 [원인 판단] AI의 추정일 뿐이며, 실제로 맞는지는 사람이 로그 내용을 읽고 직접 검토해야 합니다.
 ```
-종료 코드: 0. 전체 결과: `outputs/result_INC-2026-0001_20260925_143501.json`
+종료 코드: 0. 전체 결과(로컬 생성 위치): `outputs/result_INC-2026-0001_20260925_143501.json` / GitHub에서 바로 볼 수 있는 사본: [`evidence/result_incident_1_normal.json`](evidence/result_incident_1_normal.json)
 
 **주의(한계): 이 응답에는 부적절한 설정 변경 제안이 있다.** `LOG-007`을 보면 이 장애는 DB 커넥션 풀 최대 크기를 100에서 40으로 줄인 설정 변경 직후 발생했다 — 즉 40이라는 값 자체가 문제의 원인일 가능성이 있다. 그런데 AI는 "최대 크기 설정을 확인하고 **최소 40으로 변경**하십시오"라고 제안했다. 이미 40으로 줄어든 상태에서 "40으로 변경"하라는 것은 사실상 원인일 수 있는 값을 그대로 유지하라는 제안이며, 이 제안을 그대로 따르면 문제가 해결되지 않거나 악화될 수 있다. 이 프로그램은 로그 ID 존재 여부만 검사할 뿐 이런 내용상의 부적절함은 걸러내지 못한다 — 그래서 "원인 판단은 사람이 한다"는 원칙이 실제로 중요하다는 것을 보여주는 사례다.
 
@@ -143,7 +179,7 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
 
 [참조 ID 존재 확인] 2/2개가 실제 입력 로그에 존재함
 ```
-전체 결과: `outputs/result_INC-2026-0002_20260925_121403.json`
+전체 결과(로컬 생성 위치): `outputs/result_INC-2026-0002_20260925_121403.json` / GitHub에서 바로 볼 수 있는 사본: [`evidence/result_incident_2_tricky.json`](evidence/result_incident_2_tricky.json)
 
 이 샘플 2 결과는 **자동 검증(로그 ID 존재 확인)이 통과해도 AI 답변 내용 자체가 부실할 수 있다는 것**을 실제 모델 응답으로 보여준다. 정확히 말하면: 참조한 로그 ID 2개는 모두 실제로 존재해서 "참조 ID 존재 확인"은 통과했다. 하지만 "의심 원인"은 입력 상태 요약을 그대로 복사한 문장이고, "다음 확인 방법"과 "아직 모르는 것"도 의미 없는 문장을 반복한다. 즉 이 프로그램의 자동 검증은 "인용한 ID가 실제로 존재하는가"만 확인할 뿐, "AI가 낸 내용이 실제로 쓸모 있는 판단인가"는 검사하지 못한다는 한계를 그대로 드러낸다. 이건 미리 짜서 보여준 예시가 아니라, 정보가 부족한 입력을 줬을 때 작은 모델(1B)이 실제로 낸 응답이다.
 
@@ -180,15 +216,15 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
 --- 추가 검증 경고 (내용 관련, 형식 오류 아님) ---
   ⚠ 존재하지 않는 로그 ID를 인용했습니다 (환각 의심): ['LOG-999']
 ```
-종료 코드: 0 (형식은 유효하고, 내용 경고만 있는 경우이기 때문 — §4-6 참고). 전체 결과: `outputs/result_INC-2026-0001_20260925_143507.json`
+종료 코드: 0 (형식은 유효하고, 내용 경고만 있는 경우이기 때문 — §4-6 참고). 전체 결과: `outputs/result_INC-2026-0001_20260925_143507.json` (로컬에만 있음, GitHub에는 올라가 있지 않음 — evidence/에는 4개 핵심 사례만 골라 뒀다)
 
 ![존재하지 않는 로그 ID 경고](screenshots/hallucination_warning.png)
 위 스크린샷은 존재하지 않는 로그 ID(`LOG-999`)를 인용하면 경고가 뜨는 화면이다. `--offline-response` 옵션으로 사람이 미리 작성한 예시 응답을 검증 로직에 통과시킨 것이며, 실제 LLM 실행 결과가 아니다.
 
 ### 4-5. 실행 중 실제로 발견하고 고친 버그
 
-1. `llama3.2:1b` 모델이 JSON 키 앞에 공백을 붙여서 `" suspected_cause"`처럼 출력한 적이 있었다(원본 응답은 `outputs/result_INC-2026-0001_20260925_120252.json`에 남아 있음). 그 결과 파서가 이 키를 못 찾아서 "의심 원인"이 빈 문자열로 나왔다. `incident_copilot/validator.py`에서 키를 `strip()`으로 정규화해서 고쳤다. 재현 테스트: `test_key_with_stray_whitespace_is_normalized`.
-2. 같은 모델이 `referenced_log_ids`를 `["[LOG-101]", "[LOG-102]"]`처럼 대괄호를 붙여서 낸 적이 있었다(프롬프트에서 로그를 `- [LOG-101] ...` 형태로 보여줬기 때문에 그대로 따라 적은 것으로 보임). 이때 검증 로직이 `[LOG-101]`과 `LOG-101`을 다른 문자열로 보고 "존재하지 않는 로그 ID(환각 의심)"라고 잘못 경고했다(원본 응답은 `outputs/result_INC-2026-0002_20260925_121302.json`에 남아 있음). `_normalize_log_id()`를 추가해서 대괄호·공백을 제거한 뒤 비교하도록 고쳤다. 재현 테스트: `test_bracketed_log_id_is_normalized_and_not_treated_as_hallucination`.
+1. `llama3.2:1b` 모델이 JSON 키 앞에 공백을 붙여서 `" suspected_cause"`처럼 출력한 적이 있었다(원본 응답은 `outputs/result_INC-2026-0001_20260925_120252.json`에 남아 있음 — 로컬에만 있음, GitHub에는 없음). 그 결과 파서가 이 키를 못 찾아서 "의심 원인"이 빈 문자열로 나왔다. `incident_copilot/validator.py`에서 키를 `strip()`으로 정규화해서 고쳤다. 재현 테스트: `test_key_with_stray_whitespace_is_normalized`.
+2. 같은 모델이 `referenced_log_ids`를 `["[LOG-101]", "[LOG-102]"]`처럼 대괄호를 붙여서 낸 적이 있었다(프롬프트에서 로그를 `- [LOG-101] ...` 형태로 보여줬기 때문에 그대로 따라 적은 것으로 보임). 이때 검증 로직이 `[LOG-101]`과 `LOG-101`을 다른 문자열로 보고 "존재하지 않는 로그 ID(환각 의심)"라고 잘못 경고했다(원본 응답은 `outputs/result_INC-2026-0002_20260925_121302.json`에 남아 있음 — 로컬에만 있음, GitHub에는 없음). `_normalize_log_id()`를 추가해서 대괄호·공백을 제거한 뒤 비교하도록 고쳤다. 재현 테스트: `test_bracketed_log_id_is_normalized_and_not_treated_as_hallucination`.
 
 ### 4-6. 코드 리뷰에서 발견된 문제와 수정 (AI 응답 형식 검증 강화)
 
@@ -221,6 +257,30 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
 - `tests/test_cli.py`에 `_isolate_output_dir` fixture(autouse)를 추가해서, `pytest`의 `tmp_path`와 `monkeypatch`로 `cli.OUTPUT_DIR`을 매 테스트마다 임시 폴더로 바꿔치기한다. 이제 테스트를 몇 번 실행해도 실제 `outputs/` 폴더에는 아무것도 남지 않는다 — 테스트 실행 전후로 `outputs/*.json` 파일 목록을 직접 비교해서 새 파일이 생기지 않는 것을 확인했다(가장 최근 파일은 여전히 `result_INC-2026-0001_20260925_143647.json`이고, 그 뒤로 테스트를 여러 번 돌려도 늘어나지 않았다).
 - `test_same_second_consecutive_runs_keep_separate_files_with_preserved_raw_responses` 테스트를 추가했다. `datetime.datetime.now()`를 고정값으로 monkeypatch해서 "같은 초에 연속 실행"을 타이밍에 의존하지 않고 결정적으로 재현하고, 서로 다른 오프라인 예시 응답 2개를 연속 실행한 뒤 (a) 결과 파일이 2개로 남는지, (b) 두 파일의 `raw_llm_response`가 서로 다르게(둘 다) 보존되는지를 검사한다.
 
+### 4-8. 제출 전 최종 점검에서 발견된 입력 오류 처리 문제와 수정
+
+제출 직전 코드 리뷰에서 `data_loader.py`/`cli.py`를 다시 점검한 결과, 아래 상황에서 사용자에게
+**Python traceback이 그대로 노출**되고(사용자 친화적 메시지 없음), 구분된 종료 코드도 없다는 것이
+확인됐다: (1) 존재하지 않는 장애 JSON 파일, (2) 문법이 잘못된 JSON, (3) 필수 키(`incident_id`,
+`logs` 등) 누락, (4) `logs`가 배열이 아닌 경우(예: 문자열), (5) 존재하지 않는 `--offline-response`
+파일. 대규모 리팩터링은 하지 않고, `cli.py`의 `run()`에서 `load_incident()` 호출과
+`--offline-response` 파일 읽기를 각각 `try/except`로 감싸 `FileNotFoundError` /
+`json.JSONDecodeError` / `KeyError` / `TypeError`를 잡아 `[입력 오류] ...` 메시지와 **종료 코드
+3**으로 처리하도록 최소한으로 고쳤다(`data_loader.py` 내부 로직 자체는 바꾸지 않았다). 재현·회귀
+테스트 5개(`tests/test_cli.py`의 `test_cli_missing_incident_file_returns_clean_error` 등)를
+추가했다. 같은 점검에서 `ollama_client.py`의 예외 처리 경로(연결 실패/timeout/비정상 상태코드)가
+그동안 자동화 테스트 없이 실제 네트워크 호출로만 확인돼 왔다는 것도 발견해서, `tests/test_ollama_client.py`를
+새로 만들어 `requests.post`를 monkeypatch하는 테스트 3개를 추가했다(§4-2 목록 참고).
+
+### 4-9. GitHub Actions CI
+
+`.github/workflows/tests.yml`을 추가해서 `push`/`pull_request` 시 Ubuntu 러너에서 Python 3.11과
+3.12 두 버전으로 `pytest tests/ -q`가 자동 실행되도록 구성했다(실제 Ollama는 CI에서 실행하지
+않는다 — 현재 테스트가 전부 오프라인/monkeypatch 기반이라 그래도 된다). 이 워크플로는 이번 점검에서
+로컬에서 파일로 작성만 했고, GitHub에 push해서 실제로 워크플로가 도는 것을 웹에서 확인하지는
+못했다 — 그래서 "CI 통과"라고 단정해서 쓰지 않는다. push 후 GitHub Actions 탭에서 실제 실행 결과를
+확인하는 것이 남은 작업이다.
+
 ## 5. 실패했거나 아직 안 되는 부분 (미완료)
 
 - **미완료**: 근거 없는 주장 감지는 규칙 기반(rule-based)이다 — (a) 참조 로그 ID가 하나도 없는지, (b) "확실히/틀림없이/100%" 같은 과확신 표현이 있는지, (c) "아직 모르는 것"을 하나라도 냈는지만 검사한다. 문장의 논리적 타당성까지 판단하지는 못한다.
@@ -228,6 +288,7 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
 - **미완료**: 작은 모델(1B)의 출력 품질이 낮을 때가 있다 (4-3 샘플 2, §8 참고: 의미 없는 문장 반복, 간헐적으로 한국어 대신 영어로 답변).
 - **미완료**: JSON 파싱 정규화는 이번에 발견한 "키 공백"과 "로그 ID에 대괄호 포함" 두 패턴만 고쳤다. 다른 형태로 JSON이 깨지는 경우까지 전부 방어하지는 못한다.
 - **미완료**: Ollama 응답이 120초를 넘으면 타임아웃 처리하도록 되어 있는데(§8 참고), 실제로 한 번 이 타임아웃이 발생했다. 관찰한 1건은 재시도 후 응답을 받았다. 타임아웃 값을 늘리거나 재시도 로직을 자동화하지는 않았다.
+- **미완료**: `.github/workflows/tests.yml`(§4-9)을 추가했지만, 이 워크플로가 실제로 GitHub에서 켜져서 통과하는 것은 아직 확인하지 못했다(로컬에서 파일만 작성함). push 후 GitHub Actions 탭에서 직접 확인이 필요하다.
 - **의도적으로 만들지 않음** (범위 제외, 실패 아님): 웹 화면, Kubernetes, GPU 서버, 데이터베이스.
 
 ## 6. AI에게 맡긴 일 vs 사람이 판단해야 하는 일
@@ -277,7 +338,7 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
 | `data/sample_incident_5_auth_error.json` | 인증(로그인) 오류 | 응답 수신·검증 처리 완료 | 5/5 존재 | 의심 원인이 한국어가 아니라 영어("Token validation timeout")로 나옴. 확인해보니 시스템 프롬프트(`incident_copilot/ollama_client.py`의 `SYSTEM_PROMPT`)에는 "한국어로 답변하라"는 명시적 지시가 없다 — 즉 모델이 지시를 어긴 것이 아니라, 애초에 응답 언어를 강제하지 않았기 때문에 벌어진 일이다. |
 | `data/sample_incident_6_fab_equipment.json` | 가상 반도체 FAB 설비 온도 이상 (SK하이닉스 해커톤 맥락, 완전 가상 시나리오) | 응답 수신·검증 처리 완료 | 3/3 존재 | "다음 확인 방법"과 "아직 모르는 것"에 같은 문장이 반복됨(품질 낮음) |
 
-4건 모두 프로그램이 최종적으로 응답을 받아 검증 절차를 끝까지 처리했고, 4건 모두에서 AI가 인용한 로그 ID는 전부 실제 입력 로그에 존재했다(환각 경고 없음). 다만 이건 프로그램이 정상 동작했다는 뜻이며, AI가 낸 원인 분석 내용까지 정확했다는 뜻은 아니다 — 위 표처럼 (1) 일시적 타임아웃, (2) 언어 미준수(영어 혼용), (3) 반복적/의미 없는 문장 같은 품질 문제는 실제로 관찰됐다 — 이 역시 "미완료"(§5)에 반영했다. 전체 실행 결과 파일: `outputs/result_INC-2026-0003_*.json` ~ `outputs/result_INC-2026-0006_*.json`.
+4건 모두 프로그램이 최종적으로 응답을 받아 검증 절차를 끝까지 처리했고, 4건 모두에서 AI가 인용한 로그 ID는 전부 실제 입력 로그에 존재했다(환각 경고 없음). 다만 이건 프로그램이 정상 동작했다는 뜻이며, AI가 낸 원인 분석 내용까지 정확했다는 뜻은 아니다 — 위 표처럼 (1) 일시적 타임아웃, (2) 언어 미준수(영어 혼용), (3) 반복적/의미 없는 문장 같은 품질 문제는 실제로 관찰됐다 — 이 역시 "미완료"(§5)에 반영했다. 전체 실행 결과 파일: `outputs/result_INC-2026-0003_*.json` ~ `outputs/result_INC-2026-0006_*.json` (로컬에만 있음, GitHub에는 없음).
 
 원본 타임아웃 오류(1차 시도, 재시도로 해결됨):
 ```
@@ -293,7 +354,8 @@ ITS 현장 CCTV 어댑터 장애를 "조치 전"(`data/sample_incident_7_adapter
 평가했다.
 
 - 평가 기준(모델 실행 전 고정, 커밋 `ffde538`): [`docs/eval_criteria_adapter_case.md`](docs/eval_criteria_adapter_case.md)
-- 평가 결과(AI가 작성한 검토 초안, 사용자 미확인 — 사례 2건에 한정, 일반화 아님): [`docs/eval_result_adapter_case.md`](docs/eval_result_adapter_case.md)
+- 평가 결과(판정 초안은 Claude Code가 작성·자체 재확인함, 최종 제출 전 사람 확인 필요 — 사례 2건에 한정, 일반화 아님): [`docs/eval_result_adapter_case.md`](docs/eval_result_adapter_case.md)
+- GitHub에서 바로 볼 수 있는 원본 사본: [`evidence/result_adapter_before.json`](evidence/result_adapter_before.json), [`evidence/result_adapter_after.json`](evidence/result_adapter_after.json)
 - 요약: 5개 기준 중 "과확정 방지"와 "불확실성 유지"는 충족, "구체적 확인 방법 제안"과 "복구 사실
   반영"은 미충족, "로그 ID 근거"는 두 사례 모두 충족. 자세한 근거 문장은 위 결과 문서 참고.
 - 2분 시연 순서(실제 사용한 명령·결과 파일 경로 포함): [`docs/demo_guide.md`](docs/demo_guide.md)

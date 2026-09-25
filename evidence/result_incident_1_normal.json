@@ -1,0 +1,39 @@
+{
+  "incident_id": "INC-2026-0001",
+  "model_used": "llama3.2:1b",
+  "response_source": "ollama (실제 LLM 호출)",
+  "generated_at": "20260925_143501",
+  "processing_status": {
+    "response_received": true,
+    "json_parsed": true,
+    "schema_valid": true,
+    "format_errors": [],
+    "note": "response_received/json_parsed/schema_valid가 모두 true여야 아래 parsed_analysis와 id_existence_check가 의미가 있다. schema_valid가 true라는 것은 '형식이 스펙에 맞다'는 뜻일 뿐이며, 원인 분석 내용이 정확하다는 뜻은 아니다."
+  },
+  "prompt_sent_to_llm": "장애 ID: INC-2026-0001\n서비스명: order-api (가상 결제 주문 API)\n현재 상태 요약: 배포 후 15분 뒤부터 결제 완료 응답이 지연되고 일부 요청이 500 에러로 실패함\n\n로그 목록 (log_id 는 절대 새로 만들지 말고, 아래 있는 것만 인용하세요):\n- [LOG-001] (2026-09-25T09:00:12, INFO) order-api v2.14.0 배포 완료 (deploy 완료, 재시작됨)\n- [LOG-002] (2026-09-25T09:14:50, WARN) DB connection pool 사용량 92% (임계치 90% 초과)\n- [LOG-003] (2026-09-25T09:15:03, ERROR) 결제 확정 요청 처리 중 timeout 발생 (payment-confirm, 3200ms 초과)\n- [LOG-004] (2026-09-25T09:15:07, ERROR) HTTP 500 응답 반환 (endpoint: /api/order/confirm, 원인: DB timeout)\n- [LOG-005] (2026-09-25T09:15:40, WARN) DB connection pool 사용량 97%, 대기 중인 커넥션 요청 다수 발생\n- [LOG-006] (2026-09-25T09:16:02, ERROR) HTTP 500 응답 반환 (endpoint: /api/order/confirm, 원인: DB timeout)\n- [LOG-007] (2026-09-25T09:16:20, INFO) v2.14.0 배포와 함께 DB connection pool 최대 크기 설정이 100 -> 40으로 변경됨 (설정 변경 이력)",
+  "raw_llm_response": "{ \" suspected_cause\": \"~DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생\", \"referenced_log_ids\": [ \"LOG-005\", \"LOG-006\" ], \"next_steps\": [ \"DB connection pool 최대 크기 설정을 확인하고 최소 40으로 변경하십시오\", \"DB connection pool 사용량을 90% 이하로 줄이십시오\" ], \"unknowns\": [ \"DB connection pool 사용량이 92%에서 97%로 변경되었습니다. 대기 중인 커넥션 요청이 많습니다.\" ] }",
+  "parsed_analysis": {
+    "suspected_cause": "~DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생",
+    "referenced_log_ids": [
+      "LOG-005",
+      "LOG-006"
+    ],
+    "next_steps": [
+      "DB connection pool 최대 크기 설정을 확인하고 최소 40으로 변경하십시오",
+      "DB connection pool 사용량을 90% 이하로 줄이십시오"
+    ],
+    "unknowns": [
+      "DB connection pool 사용량이 92%에서 97%로 변경되었습니다. 대기 중인 커넥션 요청이 많습니다."
+    ]
+  },
+  "validation_warnings": [],
+  "id_existence_check": {
+    "existing_ids": [
+      "LOG-005",
+      "LOG-006"
+    ],
+    "missing_ids": [],
+    "note": "이 항목은 'AI가 인용한 log_id가 입력 로그 목록에 실제로 있는가'만 확인한 것이다. 그 로그가 의심 원인을 실제로 입증하는지, 원인 분석이 정확한지는 이 검사와 무관하며 사람이 직접 판단해야 한다."
+  },
+  "note": "이 결과는 참고용이며, 최종 원인 판단과 조치는 사람이 직접 확인해야 합니다."
+}

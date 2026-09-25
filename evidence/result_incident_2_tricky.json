@@ -1,0 +1,32 @@
+{
+  "incident_id": "INC-2026-0002",
+  "model_used": "llama3.2:1b",
+  "generated_at": "20260925_121403",
+  "success": true,
+  "prompt_sent_to_llm": "장애 ID: INC-2026-0002\n서비스명: notification-worker (가상 알림 발송 워커)\n현재 상태 요약: 새벽에 알림 발송이 일부 누락되었다는 사용자 문의가 접수됨. 로그 수집이 불완전한 상태.\n\n로그 목록 (log_id 는 절대 새로 만들지 말고, 아래 있는 것만 인용하세요):\n- [LOG-101] (2026-09-25T03:02:11, INFO) notification-worker 정상 기동 확인 (health check OK)\n- [LOG-102] (2026-09-25T03:47:33, WARN) 큐(queue) 적재량 순간 증가 감지, 상세 원인 로그 없음",
+  "raw_llm_response": "{ \" suspected_cause\": \"알림 발송이 일부 누락되었다는 사용자 문의가 접수됨\", \"referenced_log_ids\": [ \"LOG-101\", \"LOG-102\" ], \"next_steps\": [ \"일시적 확인\", \"다시 확인\" ], \"unknowns\": [ \"알림 발송이 일부 누락되었다는 사용자 문의가 접수됨\" ] }",
+  "parsed_analysis": {
+    "suspected_cause": "알림 발송이 일부 누락되었다는 사용자 문의가 접수됨",
+    "referenced_log_ids": [
+      "LOG-101",
+      "LOG-102"
+    ],
+    "next_steps": [
+      "일시적 확인",
+      "다시 확인"
+    ],
+    "unknowns": [
+      "알림 발송이 일부 누락되었다는 사용자 문의가 접수됨"
+    ]
+  },
+  "validation_warnings": [],
+  "id_existence_check": {
+    "existing_ids": [
+      "LOG-101",
+      "LOG-102"
+    ],
+    "missing_ids": [],
+    "note": "이 항목은 'AI가 인용한 log_id가 입력 로그 목록에 실제로 있는가'만 확인한 것이다. 그 로그가 의심 원인을 실제로 입증하는지는 이 검사와 무관하며 사람이 직접 판단해야 한다."
+  },
+  "note": "이 결과는 참고용이며, 최종 원인 판단과 조치는 사람이 직접 확인해야 합니다."
+}

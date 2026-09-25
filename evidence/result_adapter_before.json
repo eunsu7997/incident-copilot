@@ -1,0 +1,49 @@
+{
+  "incident_id": "INC-2026-0007",
+  "model_used": "llama3.2:1b",
+  "response_source": "ollama (실제 LLM 호출)",
+  "generated_at": "20260925_163256",
+  "processing_status": {
+    "response_received": true,
+    "json_parsed": true,
+    "schema_valid": true,
+    "format_errors": [],
+    "note": "response_received/json_parsed/schema_valid가 모두 true여야 아래 parsed_analysis와 id_existence_check가 의미가 있다. schema_valid가 true라는 것은 '형식이 스펙에 맞다'는 뜻일 뿐이며, 원인 분석 내용이 정확하다는 뜻은 아니다."
+  },
+  "prompt_sent_to_llm": "장애 ID: INC-2026-0007\n서비스명: CCTV-14 현장 카메라 네트워크 어댑터 (가상 ITS 현장 시나리오, 조치 전)\n현재 상태 요약: CCTV-14번 카메라에 대해 ping이 응답하지 않는다는 알람이 발생함. 아직 현장 조치 전.\n\n로그 목록 (log_id 는 절대 새로 만들지 말고, 아래 있는 것만 인용하세요):\n- [LOG-601] (2026-09-25T15:00:00, INFO) CCTV-14 정기 상태 점검 정상 (전일 기준)\n- [LOG-602] (2026-09-25T15:40:12, WARN) CCTV-14 ping 무응답 감지 (최근 5분간 손실률 100%)\n- [LOG-603] (2026-09-25T15:40:30, INFO) 동일 스위치의 다른 포트(CCTV-13, CCTV-15)는 정상 응답 중\n- [LOG-604] (2026-09-25T15:41:00, INFO) CCTV-14 전원 상태 표시등은 원격으로 확인 불가 (현장 점검 필요)\n- [LOG-605] (2026-09-25T15:41:15, WARN) CCTV-14가 연결된 스위치 포트의 링크 상태(link state)가 down으로 감지됨\n- [LOG-606] (2026-09-25T15:42:00, INFO) 최근 7일간 CCTV-14에서 동일 현상(ping 무응답) 이력 없음\n- [LOG-607] (2026-09-25T15:42:20, WARN) CCTV-14 인근 구간에서 3일 전 굴착 공사 이력이 있음 (케이블 손상 가능성 기록만 존재, 확인은 안 됨)",
+  "raw_llm_response": "{ \" suspected_cause\": \"Ping 무응답\", \"referenced_log_ids\": [ \"LOG-601\", \"LOG-602\", \"LOG-605\", \"LOG-606\", \"LOG-607\" ], \"next_steps\": [ \"인터넷 कनेक션을 재prüfen\", \"신뢰한 스위치 포트를 확인하고 연결을 재prüfen\", \"신뢰한 스위치 포트를 확인하고 연결을 재prüfen\", \"신뢰한 스위치 포트를 확인하고 연결을 재prüfen\", \"인터넷 कनेक션을 재prüfen\" ], \"unknowns\": [ \"인터넷 कनेक션을 재prüfen\", \"신뢰한 스위치 포트를 확인하고 연결을 재prüfen\" ] }",
+  "parsed_analysis": {
+    "suspected_cause": "Ping 무응답",
+    "referenced_log_ids": [
+      "LOG-601",
+      "LOG-602",
+      "LOG-605",
+      "LOG-606",
+      "LOG-607"
+    ],
+    "next_steps": [
+      "인터넷 कनेक션을 재prüfen",
+      "신뢰한 스위치 포트를 확인하고 연결을 재prüfen",
+      "신뢰한 스위치 포트를 확인하고 연결을 재prüfen",
+      "신뢰한 스위치 포트를 확인하고 연결을 재prüfen",
+      "인터넷 कनेक션을 재prüfen"
+    ],
+    "unknowns": [
+      "인터넷 कनेक션을 재prüfen",
+      "신뢰한 스위치 포트를 확인하고 연결을 재prüfen"
+    ]
+  },
+  "validation_warnings": [],
+  "id_existence_check": {
+    "existing_ids": [
+      "LOG-601",
+      "LOG-602",
+      "LOG-605",
+      "LOG-606",
+      "LOG-607"
+    ],
+    "missing_ids": [],
+    "note": "이 항목은 'AI가 인용한 log_id가 입력 로그 목록에 실제로 있는가'만 확인한 것이다. 그 로그가 의심 원인을 실제로 입증하는지, 원인 분석이 정확한지는 이 검사와 무관하며 사람이 직접 판단해야 한다."
+  },
+  "note": "이 결과는 참고용이며, 최종 원인 판단과 조치는 사람이 직접 확인해야 합니다."
+}

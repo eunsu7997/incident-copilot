@@ -27,7 +27,8 @@ CCTV 카메라가 ping에 응답하지 않는 가상 장애(조치 전)를 실�
 ```
 
 화면에서 보여줄 것: "[의심 원인]"이 증상만 서술하고 원인을 확정하지 않는 것, "[참조 ID 존재 확인]"이
-5/5로 통과하는 것. 실제 실행 결과: `outputs/result_INC-2026-0007_20260925_163256_fc04d6e6.json`
+5/5로 통과하는 것. 실제 실행 결과(로컬): `outputs/result_INC-2026-0007_20260925_163256_fc04d6e6.json` /
+GitHub 사본: [`evidence/result_adapter_before.json`](../evidence/result_adapter_before.json)
 (평가는 `docs/eval_result_adapter_case.md` 참고).
 
 ## 3. 존재하지 않는 로그 ID 경고 (0:50 ~ 1:15, 약 25초)
@@ -40,7 +41,7 @@ CCTV 카메라가 ping에 응답하지 않는 가상 장애(조치 전)를 실�
 ```
 
 화면에서 보여줄 것: `⚠ 존재하지 않는 로그 ID를 인용했습니다 (환각 의심): ['LOG-999']` 경고 줄.
-실제 실행 결과: `outputs/result_INC-2026-0001_20260925_143507.json`.
+실제 실행 결과: `outputs/result_INC-2026-0001_20260925_143507.json` (로컬에만 있음, GitHub에는 없음).
 
 ## 4. 조치 후 분석 (1:15 ~ 1:40, 약 25초)
 
@@ -51,8 +52,9 @@ CCTV 카메라가 ping에 응답하지 않는 가상 장애(조치 전)를 실�
 ```
 
 화면에서 보여줄 것: 복구 사실과 "정밀 고장 진단은 하지 않았다"는 로그가 있다는 것, AI가 원인을
-단정하지 않고 "진단이 안 됐다"는 사실 자체를 반영한 부분. 실제 실행 결과:
-`outputs/result_INC-2026-0008_20260925_163306_2584a164.json`.
+단정하지 않고 "진단이 안 됐다"는 사실 자체를 반영한 부분. 실제 실행 결과(로컬):
+`outputs/result_INC-2026-0008_20260925_163306_2584a164.json` / GitHub 사본:
+[`evidence/result_adapter_after.json`](../evidence/result_adapter_after.json).
 
 ## 5. 자동 검증의 한계 (1:40 ~ 2:00, 약 20초)
 
@@ -61,8 +63,9 @@ CCTV 카메라가 ping에 응답하지 않는 가상 장애(조치 전)를 실�
 - `docs/eval_result_adapter_case.md`: 조치 전 응답에서 AI가 전원/케이블 확인 방법을 구체적으로
   제안하지 못했고, 조치 후 응답에서 "ping이 복구됐다"는 사실을 문장으로 반영하지 못한 것 — 로그 ID
   존재 확인은 통과했지만 내용은 미흡했던 실제 사례.
-- `data/sample_incident_2_tricky.json` 실행 결과(README §4-3 샘플 2): 참조 로그 ID는 전부
-  존재하는데도 "다음 확인 방법"이 의미 없는 문장을 반복한 사례.
+- `data/sample_incident_2_tricky.json` 실행 결과(README §4-3 샘플 2, GitHub 사본:
+  [`evidence/result_incident_2_tricky.json`](../evidence/result_incident_2_tricky.json)): 참조 로그
+  ID는 전부 존재하는데도 "다음 확인 방법"이 의미 없는 문장을 반복한 사례.
 
 마무리 멘트: "이 프로그램이 자동으로 확인하는 건 '인용한 로그 ID가 실제로 있는가'까지다. 그 내용이
 쓸모 있는 판단인지는 사람이 봐야 한다 — 이게 이 프로젝트의 핵심 원칙이다."
