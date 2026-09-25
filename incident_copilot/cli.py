@@ -12,6 +12,7 @@ import argparse
 import datetime
 import json
 import sys
+import uuid
 from pathlib import Path
 
 from .data_loader import load_incident
@@ -175,7 +176,10 @@ def _save_result(
 ):
     OUTPUT_DIR.mkdir(exist_ok=True)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_path = OUTPUT_DIR / f"result_{incident_id}_{timestamp}.json"
+    # 같은 incident_id를 같은 초(1초 단위 타임스탬프)에 두 번 이상 실행하면 파일명이 겹칠 수
+    # 있어서, 짧은 UUID를 붙여 항상 서로 다른 파일로 저장되도록 한다.
+    unique_suffix = uuid.uuid4().hex[:8]
+    out_path = OUTPUT_DIR / f"result_{incident_id}_{timestamp}_{unique_suffix}.json"
     payload = {
         "incident_id": incident_id,
         "model_used": model,

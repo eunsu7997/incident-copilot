@@ -77,6 +77,7 @@ Get-Content outputs\result_INC-2026-0001_20260925_143501.json
 ```
 tests/test_cli.py::test_cli_valid_offline_response_exits_zero_and_saves_expected_fields PASSED
 tests/test_cli.py::test_cli_malformed_offline_response_exits_nonzero_and_records_format_errors PASSED
+tests/test_cli.py::test_same_second_consecutive_runs_keep_separate_files_with_preserved_raw_responses PASSED
 tests/test_validator.py::test_normal_case_no_warnings PASSED
 tests/test_validator.py::test_hallucinated_log_id_triggers_warning PASSED
 tests/test_validator.py::test_ungrounded_overconfident_claim_triggers_multiple_warnings PASSED
@@ -91,10 +92,12 @@ tests/test_validator.py::test_missing_required_key_is_reported PASSED
 tests/test_validator.py::test_wrong_type_for_suspected_cause_is_reported PASSED
 tests/test_validator.py::test_empty_suspected_cause_triggers_content_warning PASSED
 tests/test_validator.py::test_empty_next_steps_triggers_content_warning PASSED
-16 passed in 0.15s
+17 passed in 0.24s
 ```
 
-이 중 `test_key_with_stray_whitespace_is_normalized`와 `test_bracketed_log_id_is_normalized_and_not_treated_as_hallucination`은 실제로 실행 중 발견한 버그(아래 4-5)를 재현하는 테스트다. `test_top_level_null_response_does_not_crash`부터 `test_empty_next_steps_triggers_content_warning`까지 10개와 `test_cli.py`의 2개는 코드 리뷰에서 발견된 문제(아래 4-6)를 재현하는 테스트다.
+**테스트 개수 계산 (오해 방지를 위해 명시적으로 적는다):** 이 프로젝트의 테스트는 처음에 4개였고(§4-4 이전 커밋), 이후 두 차례에 걸쳐 늘었다. `tests/test_validator.py`는 기존 6개(그중 `test_non_json_response_marked_as_parse_failure`는 이름만 `test_non_json_response_is_reported_as_format_error`로 바뀜)에 코드 리뷰 대응으로 **8개**(`test_top_level_null_response_does_not_crash` ~ `test_empty_next_steps_triggers_content_warning`)를 새로 추가해 총 14개다. `tests/test_cli.py`는 이번에 신설한 파일로 **3개**(형식 유효, 형식 오류, 같은 초 연속 실행 파일 보존)다. 합쳐서 **14 + 3 = 17개**가 전체 테스트 수다. (이전 커밋 메시지/설명에 "12개 추가"라고 쓴 적이 있는데, 정확히는 10개 추가였다 — 표현이 부정확했던 것을 여기서 바로잡는다.)
+
+이 중 `test_key_with_stray_whitespace_is_normalized`와 `test_bracketed_log_id_is_normalized_and_not_treated_as_hallucination`은 실제로 실행 중 발견한 버그(아래 4-5)를 재현하는 테스트다. `test_top_level_null_response_does_not_crash`부터 `test_empty_next_steps_triggers_content_warning`까지 8개와 `test_cli.py`의 처음 2개는 코드 리뷰에서 발견된 형식 검증 문제(아래 4-6)를, `test_same_second_consecutive_runs_keep_separate_files_with_preserved_raw_responses`는 결과 파일 덮어쓰기 문제(아래 4-7)를 재현하는 테스트다.
 
 ### 4-3. 실제 LLM 호출 결과 (model: `llama3.2:1b`, Ollama 로컬 실행)
 
@@ -203,7 +206,20 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
 - `incident_copilot/cli.py`가 이제 처리 단계를 구분해서 기록한다: 응답 수신 여부, JSON 파싱 여부, 스키마 통과 여부를 결과 파일의 `processing_status`에 각각 남긴다. 종료 코드도 구분했다 — **0**: 응답 수신 + 형식 검사 통과(내용 경고가 있어도 0), **1**: LLM 응답 자체를 못 받음(네트워크/Ollama 오류), **2**: 응답은 받았지만 형식 검사(JSON 파싱 또는 스키마) 실패. 형식 검사에 실패하면 더 이상 `success: true`가 찍히지 않는다.
 - ID 존재 확인이 전부 통과해도(`id_existence_check`) 원인 분석이 정확하다는 뜻이 아니라는 점을 `processing_status.note`와 `id_existence_check.note`에 명시했다.
 - 결과 파일에 `response_source` 필드를 추가해서 오프라인 데모 응답(`offline_replay (...)`)과 실제 LLM 호출(`ollama (실제 LLM 호출)`)을 구분한다.
-- 재현 테스트 10개를 `tests/test_validator.py`에 추가했고(위 4-2 목록 참고), CLI를 실제로 실행해서 종료 코드와 저장된 JSON까지 확인하는 테스트 2개를 `tests/test_cli.py`에 새로 추가했다. 기존 테스트를 포함해 전체 16개 테스트가 통과한다(§4-2).
+- 재현 테스트 8개를 `tests/test_validator.py`에 추가했고(위 4-2 목록 참고), CLI를 실제로 실행해서 종료 코드와 저장된 JSON까지 확인하는 테스트 2개를 `tests/test_cli.py`에 새로 추가했다(세 번째 테스트는 아래 4-7에서 추가). 정확한 테스트 개수 계산은 §4-2를 참고.
+
+### 4-7. 재검증에서 추가로 발견된 문제와 수정 (결과 파일 덮어쓰기, 테스트 격리)
+
+4-6을 고친 뒤 재검증하는 과정에서 다음 문제가 추가로 재현됐다.
+
+- **결과 파일 덮어쓰기**: `_save_result()`가 파일명을 `result_{incident_id}_{초 단위 타임스탬프}.json`로만 지었기 때문에, 같은 `incident_id`를 같은 초에 두 번 이상 실행하면 두 번째 실행이 첫 번째 결과 파일을 **덮어써서 원본 응답이 사라졌다.**
+- `tests/test_cli.py`가 실제 `outputs/` 폴더에 테스트용 결과 파일을 직접 저장하고 있었다 — 테스트를 실행할 때마다 실행 증거가 쌓이는 실제 폴더가 테스트 부산물로 더러워지는 문제였다.
+
+수정 내용:
+
+- `incident_copilot/cli.py`의 `_save_result()`가 파일명에 짧은 UUID(`uuid.uuid4().hex[:8]`)를 추가로 붙인다(`result_{incident_id}_{timestamp}_{uuid8}.json`). 같은 초에 여러 번 실행해도 파일명이 겹치지 않는다. **기존에 이미 저장된 실행 증거 파일(구 파일명 형식)은 그대로 두었다** — 새로 저장되는 파일부터 새 이름 규칙이 적용된다.
+- `tests/test_cli.py`에 `_isolate_output_dir` fixture(autouse)를 추가해서, `pytest`의 `tmp_path`와 `monkeypatch`로 `cli.OUTPUT_DIR`을 매 테스트마다 임시 폴더로 바꿔치기한다. 이제 테스트를 몇 번 실행해도 실제 `outputs/` 폴더에는 아무것도 남지 않는다 — 테스트 실행 전후로 `outputs/*.json` 파일 목록을 직접 비교해서 새 파일이 생기지 않는 것을 확인했다(가장 최근 파일은 여전히 `result_INC-2026-0001_20260925_143647.json`이고, 그 뒤로 테스트를 여러 번 돌려도 늘어나지 않았다).
+- `test_same_second_consecutive_runs_keep_separate_files_with_preserved_raw_responses` 테스트를 추가했다. `datetime.datetime.now()`를 고정값으로 monkeypatch해서 "같은 초에 연속 실행"을 타이밍에 의존하지 않고 결정적으로 재현하고, 서로 다른 오프라인 예시 응답 2개를 연속 실행한 뒤 (a) 결과 파일이 2개로 남는지, (b) 두 파일의 `raw_llm_response`가 서로 다르게(둘 다) 보존되는지를 검사한다.
 
 ## 5. 실패했거나 아직 안 되는 부분 (미완료)
 
