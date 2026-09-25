@@ -158,7 +158,7 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
 ```
 전체 결과: `outputs/result_INC-2026-0001_20260925_122618.json`
 
-![존재하지 않는 로그 ID 경고](screenshots/hallucination_waring.png)
+![존재하지 않는 로그 ID 경고](screenshots/hallucination_warning.png)
 위 스크린샷은 존재하지 않는 로그 ID(`LOG-999`)를 인용하면 경고가 뜨는 화면이다. `--offline-response` 옵션으로 사람이 미리 작성한 예시 응답을 검증 로직에 통과시킨 것이며, 실제 LLM 실행 결과가 아니다.
 
 ### 4-5. 실행 중 실제로 발견하고 고친 버그
