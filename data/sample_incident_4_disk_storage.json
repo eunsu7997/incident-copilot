@@ -1,0 +1,50 @@
+{
+  "_note": "이 파일은 SK하이닉스 AI 해커톤 2026 포트폴리오용 가상(virtual) 데이터입니다. 실제 회사/서비스와 무관합니다.",
+  "incident_id": "INC-2026-0004",
+  "service_name": "log-storage (가상 로그 저장 서버)",
+  "status_summary": "새벽 배치 작업 이후 로그 저장 서버에서 쓰기 실패 알람이 반복적으로 발생함.",
+  "logs": [
+    {
+      "log_id": "LOG-301",
+      "timestamp": "2026-09-25T03:00:00",
+      "level": "INFO",
+      "message": "야간 배치 백업 작업 시작"
+    },
+    {
+      "log_id": "LOG-302",
+      "timestamp": "2026-09-25T03:40:12",
+      "level": "WARN",
+      "message": "디스크 사용량 88% (임계치 85% 초과)"
+    },
+    {
+      "log_id": "LOG-303",
+      "timestamp": "2026-09-25T04:05:47",
+      "level": "WARN",
+      "message": "디스크 사용량 95%"
+    },
+    {
+      "log_id": "LOG-304",
+      "timestamp": "2026-09-25T04:06:03",
+      "level": "ERROR",
+      "message": "로그 파일 쓰기 실패 (No space left on device)"
+    },
+    {
+      "log_id": "LOG-305",
+      "timestamp": "2026-09-25T04:06:19",
+      "level": "ERROR",
+      "message": "로그 파일 쓰기 실패 (No space left on device)"
+    },
+    {
+      "log_id": "LOG-306",
+      "timestamp": "2026-09-25T04:07:00",
+      "level": "INFO",
+      "message": "오래된 로그 자동 삭제(retention) 작업이 최근 7일간 실행되지 않은 이력 확인됨"
+    },
+    {
+      "log_id": "LOG-307",
+      "timestamp": "2026-09-25T04:07:30",
+      "level": "WARN",
+      "message": "inode 사용량도 92%로 높음"
+    }
+  ]
+}

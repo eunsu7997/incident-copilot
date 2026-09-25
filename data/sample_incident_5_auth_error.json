@@ -1,0 +1,50 @@
+{
+  "_note": "이 파일은 SK하이닉스 AI 해커톤 2026 포트폴리오용 가상(virtual) 데이터입니다. 실제 회사/서비스와 무관합니다.",
+  "incident_id": "INC-2026-0005",
+  "service_name": "auth-service (가상 로그인 인증 서비스)",
+  "status_summary": "사용자들이 로그인 시도 중 인증 실패(401) 오류를 반복적으로 겪고 있다는 문의가 몰림.",
+  "logs": [
+    {
+      "log_id": "LOG-401",
+      "timestamp": "2026-09-25T10:00:00",
+      "level": "INFO",
+      "message": "auth-service 정상 기동 확인"
+    },
+    {
+      "log_id": "LOG-402",
+      "timestamp": "2026-09-25T10:15:22",
+      "level": "WARN",
+      "message": "외부 SSO(외부 인증 공급자) 응답 지연 감지 (평균 200ms -> 3100ms)"
+    },
+    {
+      "log_id": "LOG-403",
+      "timestamp": "2026-09-25T10:15:40",
+      "level": "ERROR",
+      "message": "토큰 검증 실패 (외부 SSO 응답 timeout)"
+    },
+    {
+      "log_id": "LOG-404",
+      "timestamp": "2026-09-25T10:15:45",
+      "level": "ERROR",
+      "message": "로그인 요청 401 응답 반환 (원인: 토큰 검증 timeout)"
+    },
+    {
+      "log_id": "LOG-405",
+      "timestamp": "2026-09-25T10:16:10",
+      "level": "WARN",
+      "message": "인증 실패율 급증 감지 (평소 2% -> 47%)"
+    },
+    {
+      "log_id": "LOG-406",
+      "timestamp": "2026-09-25T10:16:30",
+      "level": "ERROR",
+      "message": "로그인 요청 401 응답 반환 (원인: 토큰 검증 timeout)"
+    },
+    {
+      "log_id": "LOG-407",
+      "timestamp": "2026-09-25T10:16:45",
+      "level": "INFO",
+      "message": "자체 인증 DB는 정상 응답 중 (지연 없음)"
+    }
+  ]
+}

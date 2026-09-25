@@ -1,0 +1,50 @@
+{
+  "_note": "이 파일은 SK하이닉스 AI 해커톤 2026 포트폴리오용 가상(virtual) 데이터입니다. 실제 회사/서비스와 무관합니다.",
+  "incident_id": "INC-2026-0003",
+  "service_name": "api-gateway (가상 API 게이트웨이)",
+  "status_summary": "일부 지역 사용자에게서 API 응답 시간이 평소보다 5~10배 증가한다는 신고가 접수됨. 특정 엔드포인트에서 간헐적 timeout 발생.",
+  "logs": [
+    {
+      "log_id": "LOG-201",
+      "timestamp": "2026-09-25T02:10:00",
+      "level": "INFO",
+      "message": "api-gateway 헬스체크 정상"
+    },
+    {
+      "log_id": "LOG-202",
+      "timestamp": "2026-09-25T02:22:15",
+      "level": "WARN",
+      "message": "업스트림 서비스(inventory-service) 응답 지연 감지 (평균 120ms -> 2400ms)"
+    },
+    {
+      "log_id": "LOG-203",
+      "timestamp": "2026-09-25T02:22:40",
+      "level": "WARN",
+      "message": "네트워크 재전송(retransmission) 비율 증가 감지 (0.1% -> 4.7%)"
+    },
+    {
+      "log_id": "LOG-204",
+      "timestamp": "2026-09-25T02:23:02",
+      "level": "ERROR",
+      "message": "/api/search 요청 timeout (5000ms 초과)"
+    },
+    {
+      "log_id": "LOG-205",
+      "timestamp": "2026-09-25T02:23:30",
+      "level": "WARN",
+      "message": "DNS 조회 지연 감지 (평균 15ms -> 480ms)"
+    },
+    {
+      "log_id": "LOG-206",
+      "timestamp": "2026-09-25T02:24:10",
+      "level": "ERROR",
+      "message": "/api/search 요청 timeout (5000ms 초과)"
+    },
+    {
+      "log_id": "LOG-207",
+      "timestamp": "2026-09-25T02:24:20",
+      "level": "INFO",
+      "message": "요청 수(트래픽량)는 평소 대비 변화 없음, 정상 범위"
+    }
+  ]
+}
