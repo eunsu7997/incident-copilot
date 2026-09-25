@@ -1,0 +1,50 @@
+{
+  "_note": "이 파일은 SK하이닉스 AI 해커톤 2026 포트폴리오용 가상(virtual) 데이터입니다. 실제 회사/서비스/현장과 무관합니다.",
+  "incident_id": "INC-2026-0007",
+  "service_name": "CCTV-14 현장 카메라 네트워크 어댑터 (가상 ITS 현장 시나리오, 조치 전)",
+  "status_summary": "CCTV-14번 카메라에 대해 ping이 응답하지 않는다는 알람이 발생함. 아직 현장 조치 전.",
+  "logs": [
+    {
+      "log_id": "LOG-601",
+      "timestamp": "2026-09-25T15:00:00",
+      "level": "INFO",
+      "message": "CCTV-14 정기 상태 점검 정상 (전일 기준)"
+    },
+    {
+      "log_id": "LOG-602",
+      "timestamp": "2026-09-25T15:40:12",
+      "level": "WARN",
+      "message": "CCTV-14 ping 무응답 감지 (최근 5분간 손실률 100%)"
+    },
+    {
+      "log_id": "LOG-603",
+      "timestamp": "2026-09-25T15:40:30",
+      "level": "INFO",
+      "message": "동일 스위치의 다른 포트(CCTV-13, CCTV-15)는 정상 응답 중"
+    },
+    {
+      "log_id": "LOG-604",
+      "timestamp": "2026-09-25T15:41:00",
+      "level": "INFO",
+      "message": "CCTV-14 전원 상태 표시등은 원격으로 확인 불가 (현장 점검 필요)"
+    },
+    {
+      "log_id": "LOG-605",
+      "timestamp": "2026-09-25T15:41:15",
+      "level": "WARN",
+      "message": "CCTV-14가 연결된 스위치 포트의 링크 상태(link state)가 down으로 감지됨"
+    },
+    {
+      "log_id": "LOG-606",
+      "timestamp": "2026-09-25T15:42:00",
+      "level": "INFO",
+      "message": "최근 7일간 CCTV-14에서 동일 현상(ping 무응답) 이력 없음"
+    },
+    {
+      "log_id": "LOG-607",
+      "timestamp": "2026-09-25T15:42:20",
+      "level": "WARN",
+      "message": "CCTV-14 인근 구간에서 3일 전 굴착 공사 이력이 있음 (케이블 손상 가능성 기록만 존재, 확인은 안 됨)"
+    }
+  ]
+}

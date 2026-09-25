@@ -1,0 +1,44 @@
+{
+  "_note": "이 파일은 SK하이닉스 AI 해커톤 2026 포트폴리오용 가상(virtual) 데이터입니다. 실제 회사/서비스/현장과 무관합니다.",
+  "incident_id": "INC-2026-0008",
+  "service_name": "CCTV-14 현장 카메라 네트워크 어댑터 (가상 ITS 현장 시나리오, 조치 후)",
+  "status_summary": "CCTV-14 네트워크 어댑터를 현장에서 교체한 이후 ping 응답이 복구됨. 교체된 기존 어댑터에 대한 정밀 고장 진단은 하지 않았다.",
+  "logs": [
+    {
+      "log_id": "LOG-701",
+      "timestamp": "2026-09-25T16:10:00",
+      "level": "INFO",
+      "message": "현장 작업자가 CCTV-14 네트워크 어댑터 교체 작업을 완료함"
+    },
+    {
+      "log_id": "LOG-702",
+      "timestamp": "2026-09-25T16:12:00",
+      "level": "INFO",
+      "message": "CCTV-14 ping 응답 정상 복구 확인 (손실률 0%)"
+    },
+    {
+      "log_id": "LOG-703",
+      "timestamp": "2026-09-25T16:12:05",
+      "level": "INFO",
+      "message": "CCTV-14가 연결된 스위치 포트의 링크 상태가 up으로 복구됨"
+    },
+    {
+      "log_id": "LOG-704",
+      "timestamp": "2026-09-25T16:15:00",
+      "level": "WARN",
+      "message": "교체되어 회수된 기존 어댑터에 대한 정밀 고장 진단은 실시하지 않았음 (현장에서 즉시 폐기 처리됨)"
+    },
+    {
+      "log_id": "LOG-705",
+      "timestamp": "2026-09-25T16:15:20",
+      "level": "INFO",
+      "message": "케이블 재포설(교체)은 실시하지 않았고 기존 케이블을 그대로 사용함"
+    },
+    {
+      "log_id": "LOG-706",
+      "timestamp": "2026-09-26T16:15:00",
+      "level": "INFO",
+      "message": "복구 후 24시간 모니터링 결과 재발 없음"
+    }
+  ]
+}

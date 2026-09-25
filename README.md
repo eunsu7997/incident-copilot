@@ -284,3 +284,16 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
 [실패] LLM 호출 중 오류가 발생했습니다:
 Ollama 응답이 120초 안에 오지 않았습니다(timeout). 원본 오류: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=120)
 ```
+
+## 9. 조치 전/후 평가 사례와 시연 가이드
+
+ITS 현장 CCTV 어댑터 장애를 "조치 전"(`data/sample_incident_7_adapter_before.json`)과 "조치 후"
+(`data/sample_incident_8_adapter_after.json`) 두 단계로 나눠서 만들고, **모델을 실행하기 전에**
+평가 기준 5개를 문서로 먼저 고정한 뒤, 실제 `llama3.2:1b` 응답 1회씩(재시도 없음)을 그 기준으로
+평가했다.
+
+- 평가 기준(모델 실행 전 고정, 커밋 `ffde538`): [`docs/eval_criteria_adapter_case.md`](docs/eval_criteria_adapter_case.md)
+- 평가 결과(AI가 작성한 검토 초안, 사용자 미확인 — 사례 2건에 한정, 일반화 아님): [`docs/eval_result_adapter_case.md`](docs/eval_result_adapter_case.md)
+- 요약: 5개 기준 중 "과확정 방지"와 "불확실성 유지"는 충족, "구체적 확인 방법 제안"과 "복구 사실
+  반영"은 미충족, "로그 ID 근거"는 두 사례 모두 충족. 자세한 근거 문장은 위 결과 문서 참고.
+- 2분 시연 순서(실제 사용한 명령·결과 파일 경로 포함): [`docs/demo_guide.md`](docs/demo_guide.md)
