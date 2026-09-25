@@ -1,6 +1,12 @@
 """명령줄(CLI, Command Line Interface) 진입점.
 
 사용법: python run.py data/sample_incident_1.json
+
+종료 코드(exit code):
+  0 = 응답을 받았고, 형식 검사(JSON 파싱 + 스키마)까지 정상 통과함
+      (내용 경고가 있어도 0 — 형식은 맞다는 뜻일 뿐 내용까지 정확하다는 뜻은 아님)
+  1 = LLM 응답 자체를 받지 못함 (네트워크/Ollama 오류)
+  2 = 응답은 받았지만 형식 검사(JSON 파싱 또는 스키마)에 실패함
 """
 import argparse
 import datetime
@@ -27,8 +33,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--offline-response",
         help=(
             "실제 LLM을 호출하지 않고, 이 경로의 텍스트 파일을 'AI 응답'으로 간주해서 "
-            "검증 로직(존재하지 않는 로그 ID 경고 등)만 실제로 실행해 봅니다. "
-            "데모/테스트 용도이며, 이 옵션을 쓰면 실제 LLM 실행 결과가 아니라는 점을 화면에 표시합니다."
+            "검증 로직(형식 검사, 존재하지 않는 로그 ID 경고 등)만 실제로 실행해 봅니다. "
+            "데모/테스트 용도이며, 이 옵션을 쓰면 실제 LLM 실행 결과가 아니라는 점을 화면과 결과 파일에 표시합니다."
         ),
     )
     return parser
@@ -36,6 +42,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 def run(argv=None) -> int:
     args = build_arg_parser().parse_args(argv)
+    is_offline_replay = bool(args.offline_response)
 
     incident = load_incident(args.incident_file)
     prompt_text = incident.to_prompt_text()
@@ -50,7 +57,7 @@ def run(argv=None) -> int:
         print("--no-llm 옵션이 켜져 있어 실제 LLM 호출을 하지 않았습니다.")
         return 0
 
-    if args.offline_response:
+    if is_offline_replay:
         model_label = f"OFFLINE-REPLAY:{args.offline_response}"
         print(
             f"\n[알림] --offline-response 옵션 사용 중: 실제 LLM을 호출하지 않습니다.\n"
@@ -64,12 +71,47 @@ def run(argv=None) -> int:
         try:
             raw_response = call_ollama(args.model, prompt_text)
         except OllamaError as e:
-            print(f"\n[실패] LLM 호출 중 오류가 발생했습니다:\n{e}")
-            _save_result(incident.incident_id, args.model, prompt_text, None, [str(e)], success=False)
+            print(f"\n[실패] LLM 응답을 받지 못했습니다:\n{e}")
+            _save_result(
+                incident.incident_id,
+                args.model,
+                prompt_text,
+                response_received=False,
+                json_parsed=False,
+                schema_valid=False,
+                format_errors=[str(e)],
+                analysis=None,
+                warnings=[],
+                raw_response=None,
+                is_offline_replay=False,
+            )
             return 1
 
-    analysis = parse_ai_response(raw_response)
-    result = validate(analysis, incident.valid_log_ids())
+    parsed = parse_ai_response(raw_response)
+
+    if not parsed.schema_valid:
+        stage = "JSON 파싱" if not parsed.json_parsed else "형식(스키마) 검사"
+        print(f"\n[형식 오류] AI 응답이 {stage}을 통과하지 못했습니다. 원인 분석 내용을 신뢰할 수 없습니다.")
+        for err in parsed.format_errors:
+            print(f"  - {err}")
+        print("\n원본 응답(raw_response)은 결과 파일에 그대로 보존됩니다.")
+        _save_result(
+            incident.incident_id,
+            model_label,
+            prompt_text,
+            response_received=True,
+            json_parsed=parsed.json_parsed,
+            schema_valid=False,
+            format_errors=parsed.format_errors,
+            analysis=None,
+            warnings=[],
+            raw_response=raw_response,
+            is_offline_replay=is_offline_replay,
+        )
+        return 2
+
+    result = validate(parsed, incident.valid_log_ids())
+    analysis = parsed.analysis
 
     print("\n--- AI 분석 결과 ---")
     print(f"[의심 원인]\n{analysis.suspected_cause}")
@@ -89,12 +131,12 @@ def run(argv=None) -> int:
     )
     print(
         "  -> 주의: 이건 'ID가 입력 로그 목록에 있는가'만 자동으로 확인한 것입니다. "
-        "그 로그가 실제로 의심 원인을 뒷받침하는지는 검사하지 않습니다."
+        "그 로그가 실제로 의심 원인을 뒷받침하는지, 원인 분석 내용이 정확한지는 검사하지 않습니다."
     )
     print("[원인 판단] AI의 추정일 뿐이며, 실제로 맞는지는 사람이 로그 내용을 읽고 직접 검토해야 합니다.")
 
     if result.has_warnings():
-        print("\n--- 추가 검증 경고 ---")
+        print("\n--- 추가 검증 경고 (내용 관련, 형식 오류 아님) ---")
         for w in result.warnings:
             print(f"  {w}")
 
@@ -102,10 +144,14 @@ def run(argv=None) -> int:
         incident.incident_id,
         model_label,
         prompt_text,
-        analysis,
-        result.warnings,
-        success=True,
+        response_received=True,
+        json_parsed=True,
+        schema_valid=True,
+        format_errors=[],
+        analysis=analysis,
+        warnings=result.warnings,
         raw_response=raw_response,
+        is_offline_replay=is_offline_replay,
         existing_ids=result.existing_ids,
         missing_ids=result.missing_ids,
     )
@@ -116,10 +162,14 @@ def _save_result(
     incident_id,
     model,
     prompt_text,
+    response_received,
+    json_parsed,
+    schema_valid,
+    format_errors,
     analysis,
     warnings,
-    success,
-    raw_response=None,
+    raw_response,
+    is_offline_replay,
     existing_ids=None,
     missing_ids=None,
 ):
@@ -129,8 +179,21 @@ def _save_result(
     payload = {
         "incident_id": incident_id,
         "model_used": model,
+        "response_source": "offline_replay (사람이 작성한 예시 응답 — 실제 LLM 호출 아님)"
+        if is_offline_replay
+        else "ollama (실제 LLM 호출)",
         "generated_at": timestamp,
-        "success": success,
+        "processing_status": {
+            "response_received": response_received,
+            "json_parsed": json_parsed,
+            "schema_valid": schema_valid,
+            "format_errors": format_errors or [],
+            "note": (
+                "response_received/json_parsed/schema_valid가 모두 true여야 아래 parsed_analysis와 "
+                "id_existence_check가 의미가 있다. schema_valid가 true라는 것은 '형식이 스펙에 맞다'는 "
+                "뜻일 뿐이며, 원인 분석 내용이 정확하다는 뜻은 아니다."
+            ),
+        },
         "prompt_sent_to_llm": prompt_text,
         "raw_llm_response": raw_response,
         "parsed_analysis": None
@@ -141,17 +204,23 @@ def _save_result(
             "next_steps": analysis.next_steps,
             "unknowns": analysis.unknowns,
         },
-        "validation_warnings": warnings,
-        "id_existence_check": {
+        "validation_warnings": warnings or [],
+        "id_existence_check": None
+        if not schema_valid
+        else {
             "existing_ids": existing_ids or [],
             "missing_ids": missing_ids or [],
-            "note": "이 항목은 'AI가 인용한 log_id가 입력 로그 목록에 실제로 있는가'만 확인한 것이다. "
-            "그 로그가 의심 원인을 실제로 입증하는지는 이 검사와 무관하며 사람이 직접 판단해야 한다.",
+            "note": (
+                "이 항목은 'AI가 인용한 log_id가 입력 로그 목록에 실제로 있는가'만 확인한 것이다. "
+                "그 로그가 의심 원인을 실제로 입증하는지, 원인 분석이 정확한지는 이 검사와 무관하며 "
+                "사람이 직접 판단해야 한다."
+            ),
         },
         "note": "이 결과는 참고용이며, 최종 원인 판단과 조치는 사람이 직접 확인해야 합니다.",
     }
     out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\n결과 저장됨: {out_path}")
+    return out_path
 
 
 if __name__ == "__main__":

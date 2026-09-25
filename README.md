@@ -53,6 +53,9 @@ ollama pull llama3.2:1b
 
 # 7) (데모) 존재하지 않는 로그 ID 경고를 실제 CLI 화면으로 보고 싶다면 — LLM 호출 없이 검증 로직만 실행
 .\.venv\Scripts\python.exe run.py data\sample_incident_1.json --offline-response data\demo_manual_response_missing_id.txt
+
+# 8) 방금 실행 결과로 저장된 JSON 파일 전체를 화면에서 보고 싶다면 (파일명은 결과 저장 시 출력된 경로를 그대로 사용)
+Get-Content outputs\result_INC-2026-0001_20260925_143501.json
 ```
 
 `data/sample_incident_1.json`, `data/sample_incident_2_tricky.json`은 모두 **가상(virtual) 데이터**이며 실제 회사/서비스와 무관하다.
@@ -72,16 +75,26 @@ ollama pull llama3.2:1b
 ### 4-2. 오프라인 검증 로직 테스트 (pytest, LLM 미호출)
 
 ```
+tests/test_cli.py::test_cli_valid_offline_response_exits_zero_and_saves_expected_fields PASSED
+tests/test_cli.py::test_cli_malformed_offline_response_exits_nonzero_and_records_format_errors PASSED
 tests/test_validator.py::test_normal_case_no_warnings PASSED
 tests/test_validator.py::test_hallucinated_log_id_triggers_warning PASSED
 tests/test_validator.py::test_ungrounded_overconfident_claim_triggers_multiple_warnings PASSED
 tests/test_validator.py::test_key_with_stray_whitespace_is_normalized PASSED
 tests/test_validator.py::test_bracketed_log_id_is_normalized_and_not_treated_as_hallucination PASSED
-tests/test_validator.py::test_non_json_response_marked_as_parse_failure PASSED
-6 passed in 0.02s
+tests/test_validator.py::test_non_json_response_is_reported_as_format_error PASSED
+tests/test_validator.py::test_top_level_null_response_does_not_crash PASSED
+tests/test_validator.py::test_top_level_list_response_does_not_crash PASSED
+tests/test_validator.py::test_referenced_log_ids_as_number_does_not_crash PASSED
+tests/test_validator.py::test_referenced_log_ids_as_string_is_rejected_not_split_into_chars PASSED
+tests/test_validator.py::test_missing_required_key_is_reported PASSED
+tests/test_validator.py::test_wrong_type_for_suspected_cause_is_reported PASSED
+tests/test_validator.py::test_empty_suspected_cause_triggers_content_warning PASSED
+tests/test_validator.py::test_empty_next_steps_triggers_content_warning PASSED
+16 passed in 0.15s
 ```
 
-이 중 `test_key_with_stray_whitespace_is_normalized`와 `test_bracketed_log_id_is_normalized_and_not_treated_as_hallucination`은 실제로 실행 중 발견한 버그(아래 4-5)를 재현하는 테스트다.
+이 중 `test_key_with_stray_whitespace_is_normalized`와 `test_bracketed_log_id_is_normalized_and_not_treated_as_hallucination`은 실제로 실행 중 발견한 버그(아래 4-5)를 재현하는 테스트다. `test_top_level_null_response_does_not_crash`부터 `test_empty_next_steps_triggers_content_warning`까지 10개와 `test_cli.py`의 2개는 코드 리뷰에서 발견된 문제(아래 4-6)를 재현하는 테스트다.
 
 ### 4-3. 실제 LLM 호출 결과 (model: `llama3.2:1b`, Ollama 로컬 실행)
 
@@ -94,11 +107,17 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
 [참조한 로그 ID]
 ['LOG-005', 'LOG-006']
 
+[다음 확인 방법]
+  1. DB connection pool 최대 크기 설정을 확인하고 최소 40으로 변경하십시오
+  2. DB connection pool 사용량을 90% 이하로 줄이십시오
+
 [참조 ID 존재 확인] 2/2개가 실제 입력 로그에 존재함
-  -> 주의: 이건 'ID가 입력 로그 목록에 있는가'만 자동으로 확인한 것입니다. 그 로그가 실제로 의심 원인을 뒷받침하는지는 검사하지 않습니다.
+  -> 주의: 이건 'ID가 입력 로그 목록에 있는가'만 자동으로 확인한 것입니다. 그 로그가 실제로 의심 원인을 뒷받침하는지, 원인 분석 내용이 정확한지는 검사하지 않습니다.
 [원인 판단] AI의 추정일 뿐이며, 실제로 맞는지는 사람이 로그 내용을 읽고 직접 검토해야 합니다.
 ```
-전체 결과: `outputs/result_INC-2026-0001_20260925_121228.json`
+종료 코드: 0. 전체 결과: `outputs/result_INC-2026-0001_20260925_143501.json`
+
+**주의(한계): 이 응답에는 부적절한 설정 변경 제안이 있다.** `LOG-007`을 보면 이 장애는 DB 커넥션 풀 최대 크기를 100에서 40으로 줄인 설정 변경 직후 발생했다 — 즉 40이라는 값 자체가 문제의 원인일 가능성이 있다. 그런데 AI는 "최대 크기 설정을 확인하고 **최소 40으로 변경**하십시오"라고 제안했다. 이미 40으로 줄어든 상태에서 "40으로 변경"하라는 것은 사실상 원인일 수 있는 값을 그대로 유지하라는 제안이며, 이 제안을 그대로 따르면 문제가 해결되지 않거나 악화될 수 있다. 이 프로그램은 로그 ID 존재 여부만 검사할 뿐 이런 내용상의 부적절함은 걸러내지 못한다 — 그래서 "원인 판단은 사람이 한다"는 원칙이 실제로 중요하다는 것을 보여주는 사례다.
 
 ![정상 실행 결과](screenshots/normal_case.png)
 위 스크린샷은 `run.py`로 샘플 1(order-api)을 정상 실행했을 때의 실제 화면이다.
@@ -152,13 +171,13 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
 
 --- 검증 결과 (이 프로그램이 자동으로 확인한 것) ---
 [참조 ID 존재 확인] 1/2개가 실제 입력 로그에 존재함, 존재하지 않는 ID: ['LOG-999']
-  -> 주의: 이건 'ID가 입력 로그 목록에 있는가'만 자동으로 확인한 것입니다. 그 로그가 실제로 의심 원인을 뒷받침하는지는 검사하지 않습니다.
+  -> 주의: 이건 'ID가 입력 로그 목록에 있는가'만 자동으로 확인한 것입니다. 그 로그가 실제로 의심 원인을 뒷받침하는지, 원인 분석 내용이 정확한지는 검사하지 않습니다.
 [원인 판단] AI의 추정일 뿐이며, 실제로 맞는지는 사람이 로그 내용을 읽고 직접 검토해야 합니다.
 
---- 추가 검증 경고 ---
+--- 추가 검증 경고 (내용 관련, 형식 오류 아님) ---
   ⚠ 존재하지 않는 로그 ID를 인용했습니다 (환각 의심): ['LOG-999']
 ```
-전체 결과: `outputs/result_INC-2026-0001_20260925_122618.json`
+종료 코드: 0 (형식은 유효하고, 내용 경고만 있는 경우이기 때문 — §4-6 참고). 전체 결과: `outputs/result_INC-2026-0001_20260925_143507.json`
 
 ![존재하지 않는 로그 ID 경고](screenshots/hallucination_warning.png)
 위 스크린샷은 존재하지 않는 로그 ID(`LOG-999`)를 인용하면 경고가 뜨는 화면이다. `--offline-response` 옵션으로 사람이 미리 작성한 예시 응답을 검증 로직에 통과시킨 것이며, 실제 LLM 실행 결과가 아니다.
@@ -168,9 +187,28 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
 1. `llama3.2:1b` 모델이 JSON 키 앞에 공백을 붙여서 `" suspected_cause"`처럼 출력한 적이 있었다(원본 응답은 `outputs/result_INC-2026-0001_20260925_120252.json`에 남아 있음). 그 결과 파서가 이 키를 못 찾아서 "의심 원인"이 빈 문자열로 나왔다. `incident_copilot/validator.py`에서 키를 `strip()`으로 정규화해서 고쳤다. 재현 테스트: `test_key_with_stray_whitespace_is_normalized`.
 2. 같은 모델이 `referenced_log_ids`를 `["[LOG-101]", "[LOG-102]"]`처럼 대괄호를 붙여서 낸 적이 있었다(프롬프트에서 로그를 `- [LOG-101] ...` 형태로 보여줬기 때문에 그대로 따라 적은 것으로 보임). 이때 검증 로직이 `[LOG-101]`과 `LOG-101`을 다른 문자열로 보고 "존재하지 않는 로그 ID(환각 의심)"라고 잘못 경고했다(원본 응답은 `outputs/result_INC-2026-0002_20260925_121302.json`에 남아 있음). `_normalize_log_id()`를 추가해서 대괄호·공백을 제거한 뒤 비교하도록 고쳤다. 재현 테스트: `test_bracketed_log_id_is_normalized_and_not_treated_as_hallucination`.
 
+### 4-6. 코드 리뷰에서 발견된 문제와 수정 (AI 응답 형식 검증 강화)
+
+코드 리뷰에서 아래 문제가 실제로 재현됐다.
+
+- AI 응답이 `[]`(빈 배열) 또는 `null`이면 예전 코드는 `None.get(...)` / `list.get(...)`에서 **`AttributeError`로 프로그램이 죽었다.**
+- `referenced_log_ids`가 숫자면 `list(5)`에서 **`TypeError`로 죽었다.**
+- `referenced_log_ids`가 `"LOG-001"`처럼 문자열이면 예외는 안 나지만 `list("LOG-001")`이 글자를 하나씩(`'L','O','G','-','0','0','1'`) 쪼개서 **조용히 틀린 결과**를 만들었다.
+- JSON 해석에 실패해도 결과 파일에는 `success: true`가 찍히고 **종료 코드는 0**이 나왔다 — 실패인데 성공처럼 보였다.
+
+수정 내용:
+
+- `incident_copilot/validator.py`의 `parse_ai_response()`를 JSON 파싱 단계와 형식(스키마) 검사 단계로 분리했다. 최상위 값이 dict인지, 필수 키 4개(`suspected_cause`/`referenced_log_ids`/`next_steps`/`unknowns`)가 다 있는지, 각 필드의 자료형(문자열 / 문자열 배열)이 맞는지 검사한다. 문제가 있으면 예외를 던지지 않고 `ParsedResponse(schema_valid=False, format_errors=[...])`를 반환하며, **형식이 틀린 값을 강제로 변환하지 않는다**(예: 문자열을 배열로 쪼개서 받아들이지 않는다). 원본 응답(`raw_response`)은 항상 그대로 보존된다.
+- 의심 원인이 빈 문자열이거나(`suspected_cause == ""`) 다음 확인 방법이 비어 있으면(`next_steps == []`) 내용 경고를 추가로 낸다.
+- `incident_copilot/cli.py`가 이제 처리 단계를 구분해서 기록한다: 응답 수신 여부, JSON 파싱 여부, 스키마 통과 여부를 결과 파일의 `processing_status`에 각각 남긴다. 종료 코드도 구분했다 — **0**: 응답 수신 + 형식 검사 통과(내용 경고가 있어도 0), **1**: LLM 응답 자체를 못 받음(네트워크/Ollama 오류), **2**: 응답은 받았지만 형식 검사(JSON 파싱 또는 스키마) 실패. 형식 검사에 실패하면 더 이상 `success: true`가 찍히지 않는다.
+- ID 존재 확인이 전부 통과해도(`id_existence_check`) 원인 분석이 정확하다는 뜻이 아니라는 점을 `processing_status.note`와 `id_existence_check.note`에 명시했다.
+- 결과 파일에 `response_source` 필드를 추가해서 오프라인 데모 응답(`offline_replay (...)`)과 실제 LLM 호출(`ollama (실제 LLM 호출)`)을 구분한다.
+- 재현 테스트 10개를 `tests/test_validator.py`에 추가했고(위 4-2 목록 참고), CLI를 실제로 실행해서 종료 코드와 저장된 JSON까지 확인하는 테스트 2개를 `tests/test_cli.py`에 새로 추가했다. 기존 테스트를 포함해 전체 16개 테스트가 통과한다(§4-2).
+
 ## 5. 실패했거나 아직 안 되는 부분 (미완료)
 
 - **미완료**: 근거 없는 주장 감지는 규칙 기반(rule-based)이다 — (a) 참조 로그 ID가 하나도 없는지, (b) "확실히/틀림없이/100%" 같은 과확신 표현이 있는지, (c) "아직 모르는 것"을 하나라도 냈는지만 검사한다. 문장의 논리적 타당성까지 판단하지는 못한다.
+- **미완료**: 형식(스키마) 검사(§4-6)는 자료형만 검사한다 — 예를 들어 `next_steps`의 원소가 `""`(빈 문자열)이어도 "문자열이니까" 형식상으로는 통과한다. 그리고 내용이 실제로 적절한지는 전혀 검사하지 않는다 — §4-3 샘플 1의 "최소 40으로 변경하십시오" 제안(원인일 수 있는 값을 유지하라는 부적절한 제안)이 그 예다.
 - **미완료**: 작은 모델(1B)의 출력 품질이 낮을 때가 있다 (4-3 샘플 2, §8 참고: 의미 없는 문장 반복, 간헐적으로 한국어 대신 영어로 답변).
 - **미완료**: JSON 파싱 정규화는 이번에 발견한 "키 공백"과 "로그 ID에 대괄호 포함" 두 패턴만 고쳤다. 다른 형태로 JSON이 깨지는 경우까지 전부 방어하지는 못한다.
 - **미완료**: Ollama 응답이 120초를 넘으면 타임아웃 처리하도록 되어 있는데(§8 참고), 실제로 한 번 이 타임아웃이 발생했다. 관찰한 1건은 재시도 후 응답을 받았다. 타임아웃 값을 늘리거나 재시도 로직을 자동화하지는 않았다.
@@ -220,7 +258,7 @@ DB connection pool 사용량 97% 대기 중인 커넥션 요청 다수 발생
 |---|---|---|---|---|
 | `data/sample_incident_3_network_latency.json` | 네트워크 지연 (API 게이트웨이) | 응답 수신·검증 처리 완료 | 7/7 존재 | - |
 | `data/sample_incident_4_disk_storage.json` | 디스크/스토리지 포화 | **1차 실패 → 재시도 후 응답 수신·검증 처리 완료** | 5/5 존재 | 1차 시도에서 `Ollama 응답이 120초 안에 오지 않았습니다(timeout)` 오류로 실패함(원본 오류는 아래 참고). 재시도하니 응답을 받았다. 원인은 확인하지 못했다(모델 재로딩으로 추정하지만 확인된 사실은 아니다). |
-| `data/sample_incident_5_auth_error.json` | 인증(로그인) 오류 | 응답 수신·검증 처리 완료 | 5/5 존재 | 의심 원인이 한국어가 아니라 영어("Token validation timeout")로 나옴 — 시스템 프롬프트는 한국어로 답하라고 지시했지만 작은 모델이 이를 항상 지키지는 않았다. |
+| `data/sample_incident_5_auth_error.json` | 인증(로그인) 오류 | 응답 수신·검증 처리 완료 | 5/5 존재 | 의심 원인이 한국어가 아니라 영어("Token validation timeout")로 나옴. 확인해보니 시스템 프롬프트(`incident_copilot/ollama_client.py`의 `SYSTEM_PROMPT`)에는 "한국어로 답변하라"는 명시적 지시가 없다 — 즉 모델이 지시를 어긴 것이 아니라, 애초에 응답 언어를 강제하지 않았기 때문에 벌어진 일이다. |
 | `data/sample_incident_6_fab_equipment.json` | 가상 반도체 FAB 설비 온도 이상 (SK하이닉스 해커톤 맥락, 완전 가상 시나리오) | 응답 수신·검증 처리 완료 | 3/3 존재 | "다음 확인 방법"과 "아직 모르는 것"에 같은 문장이 반복됨(품질 낮음) |
 
 4건 모두 프로그램이 최종적으로 응답을 받아 검증 절차를 끝까지 처리했고, 4건 모두에서 AI가 인용한 로그 ID는 전부 실제 입력 로그에 존재했다(환각 경고 없음). 다만 이건 프로그램이 정상 동작했다는 뜻이며, AI가 낸 원인 분석 내용까지 정확했다는 뜻은 아니다 — 위 표처럼 (1) 일시적 타임아웃, (2) 언어 미준수(영어 혼용), (3) 반복적/의미 없는 문장 같은 품질 문제는 실제로 관찰됐다 — 이 역시 "미완료"(§5)에 반영했다. 전체 실행 결과 파일: `outputs/result_INC-2026-0003_*.json` ~ `outputs/result_INC-2026-0006_*.json`.
