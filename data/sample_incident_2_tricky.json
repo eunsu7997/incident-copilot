@@ -1,0 +1,20 @@
+{
+  "_note": "이 파일도 가상(virtual) 데이터입니다. 정보가 의도적으로 부족하여, AI가 근거 없이 원인을 확정하는지 테스트하기 위한 사례입니다.",
+  "incident_id": "INC-2026-0002",
+  "service_name": "notification-worker (가상 알림 발송 워커)",
+  "status_summary": "새벽에 알림 발송이 일부 누락되었다는 사용자 문의가 접수됨. 로그 수집이 불완전한 상태.",
+  "logs": [
+    {
+      "log_id": "LOG-101",
+      "timestamp": "2026-09-25T03:02:11",
+      "level": "INFO",
+      "message": "notification-worker 정상 기동 확인 (health check OK)"
+    },
+    {
+      "log_id": "LOG-102",
+      "timestamp": "2026-09-25T03:47:33",
+      "level": "WARN",
+      "message": "큐(queue) 적재량 순간 증가 감지, 상세 원인 로그 없음"
+    }
+  ]
+}

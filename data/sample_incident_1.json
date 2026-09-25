@@ -1,0 +1,50 @@
+{
+  "_note": "이 파일은 SK하이닉스 AI 해커톤 2026 포트폴리오용 가상(virtual) 데이터입니다. 실제 회사/서비스와 무관합니다.",
+  "incident_id": "INC-2026-0001",
+  "service_name": "order-api (가상 결제 주문 API)",
+  "status_summary": "배포 후 15분 뒤부터 결제 완료 응답이 지연되고 일부 요청이 500 에러로 실패함",
+  "logs": [
+    {
+      "log_id": "LOG-001",
+      "timestamp": "2026-09-25T09:00:12",
+      "level": "INFO",
+      "message": "order-api v2.14.0 배포 완료 (deploy 완료, 재시작됨)"
+    },
+    {
+      "log_id": "LOG-002",
+      "timestamp": "2026-09-25T09:14:50",
+      "level": "WARN",
+      "message": "DB connection pool 사용량 92% (임계치 90% 초과)"
+    },
+    {
+      "log_id": "LOG-003",
+      "timestamp": "2026-09-25T09:15:03",
+      "level": "ERROR",
+      "message": "결제 확정 요청 처리 중 timeout 발생 (payment-confirm, 3200ms 초과)"
+    },
+    {
+      "log_id": "LOG-004",
+      "timestamp": "2026-09-25T09:15:07",
+      "level": "ERROR",
+      "message": "HTTP 500 응답 반환 (endpoint: /api/order/confirm, 원인: DB timeout)"
+    },
+    {
+      "log_id": "LOG-005",
+      "timestamp": "2026-09-25T09:15:40",
+      "level": "WARN",
+      "message": "DB connection pool 사용량 97%, 대기 중인 커넥션 요청 다수 발생"
+    },
+    {
+      "log_id": "LOG-006",
+      "timestamp": "2026-09-25T09:16:02",
+      "level": "ERROR",
+      "message": "HTTP 500 응답 반환 (endpoint: /api/order/confirm, 원인: DB timeout)"
+    },
+    {
+      "log_id": "LOG-007",
+      "timestamp": "2026-09-25T09:16:20",
+      "level": "INFO",
+      "message": "v2.14.0 배포와 함께 DB connection pool 최대 크기 설정이 100 -> 40으로 변경됨 (설정 변경 이력)"
+    }
+  ]
+}
