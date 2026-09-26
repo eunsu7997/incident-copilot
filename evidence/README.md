@@ -23,6 +23,12 @@
 - `id_existence_check`: 참조한 로그 ID가 입력 로그에 실제로 존재하는지 자동 검사한 결과
 - `validation_warnings`: 이 프로그램이 자동으로 낸 내용 경고(과확신 표현, 빈 필드 등)
 
+**주의(스키마 차이)**: `result_incident_2_tricky.json`은 `response_source`/`processing_status`
+필드가 도입되기 **전에** 생성된 파일이라 이 두 필드가 없고 대신 `success: true`만 있다. `--offline-response`
+기능도 이 파일이 생성된 시점에는 아직 없었으므로, 이 파일은 명명 규칙과 시점상 실제 Ollama 호출임이
+분명하지만 최신 파일들처럼 `response_source`로 기계가 바로 구분할 수 있는 필드는 없다 — 오래된
+실행 증거를 있는 그대로 남겨 둔 것이며, 내용을 새 스키마에 맞춰 다시 쓰지 않았다.
+
 **주의**: `id_existence_check`가 전부 통과했다고 해서 `parsed_analysis`의 내용이 맞다는 뜻은
 아니다 — 그건 사람이 직접 읽고 판단해야 한다(위 표의 `result_incident_2_tricky.json`이 정확히 그
 사례다). 자세한 설명은 프로젝트 루트 `README.md`와 `docs/eval_result_adapter_case.md` 참고.
