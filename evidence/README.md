@@ -7,7 +7,7 @@
 
 | 파일 | 원본 (`outputs/`) | 어떤 실행인지 |
 |---|---|---|
-| `result_incident_1_normal.json` | `result_INC-2026-0001_20260925_143501.json` | 정상 장애 분석 사례. 실제 `llama3.2:1b` 호출, 참조 로그 ID 2/2 존재, 형식 검사 통과(종료 코드 0). README §4-3 "샘플 1"과 동일한 실행. |
+| `result_incident_1_normal.json` | `result_INC-2026-0001_20260925_143501.json` | 정상 실행 사례. 실제 `llama3.2:1b` 호출이며 형식 및 참조 로그 ID 검증은 통과했지만, 내용상 부적절한 설정 변경 제안이 포함된 응답이다. README §4-3 "샘플 1"과 동일한 실행. |
 | `result_incident_2_tricky.json` | `result_INC-2026-0002_20260925_121403.json` | 자동 검증(로그 ID 존재 확인)은 통과했지만 AI 답변 내용(의심 원인, 다음 확인 방법)이 부실했던 사례. README §4-3 "샘플 2"와 동일한 실행. |
 | `result_adapter_before.json` | `result_INC-2026-0007_20260925_163256_fc04d6e6.json` | CCTV 네트워크 어댑터 장애, **조치 전** 상태 분석. 응답 일부가 한국어/독일어/힌디어가 섞여 깨진 실제 사례. `docs/eval_result_adapter_case.md`에서 평가한 것과 동일한 실행. |
 | `result_adapter_after.json` | `result_INC-2026-0008_20260925_163306_2584a164.json` | 같은 CCTV 장비, 어댑터 **교체(조치) 후** 상태 분석. `docs/eval_result_adapter_case.md`에서 평가한 것과 동일한 실행. |
