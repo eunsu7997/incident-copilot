@@ -52,9 +52,12 @@ GitHub 사본: [`evidence/result_adapter_before.json`](../evidence/result_adapte
 .\.venv\Scripts\python.exe run.py data\sample_incident_8_adapter_after.json
 ```
 
-화면에서 보여줄 것: 복구 사실과 "정밀 고장 진단은 하지 않았다"는 로그가 있다는 것, AI가 원인을
-단정하지 않고 "진단이 안 됐다"는 사실 자체를 반영한 부분. 실제 실행 결과(로컬):
-`outputs/result_INC-2026-0008_20260925_163306_2584a164.json` / GitHub 사본:
+화면에서 보여줄 것: 입력 로그에는 어댑터 교체 후 ping 복구 사실(`LOG-702`)이 있지만, AI 응답은
+`LOG-702`를 참조 로그 ID로 인용하고도 그 복구 사실을 문장으로 명시적으로 반영하지 못했다는 것
+(사람 검토 결과 기준 3 "복구 사실 반영" 미충족 — `docs/eval_result_adapter_case.md` 참고). 대신
+"정밀 고장 진단이 실시되지 않았음"이라는 사실 자체는 원인을 단정하지 않고 반영했다(기준 4 "불확실성
+유지"는 충족). 이 사례는 참조 ID 존재 검증 통과와 내용 품질이 별개라는 점을 보여준다. 실제 실행
+결과(로컬): `outputs/result_INC-2026-0008_20260925_163306_2584a164.json` / GitHub 사본:
 [`evidence/result_adapter_after.json`](../evidence/result_adapter_after.json).
 
 ## 5. 자동 검증의 한계 (1:40 ~ 2:00, 약 20초)
