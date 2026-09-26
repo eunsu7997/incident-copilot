@@ -8,6 +8,41 @@ SK하이닉스 AI 해커톤 2026 제출용 개인 포트폴리오이며, 기존�
 > 기계가 검증 가능한 부분(로그 ID 존재 여부, 응답 형식)과 사람이 판단해야 하는 부분(원인이 실제로
 > 맞는가, 조치를 어떻게 할 것인가)을 분리해서 보여주는 것이 이 프로젝트의 전부다.
 
+## 흐름 (누가 무엇을 하는가)
+
+```
+장애 로그(JSON)
+    │
+    ▼
+LLM (llama3.2:1b, Ollama)  — 원인 후보 / 참조 로그 ID / 다음 확인 방법 / 아직 모르는 것 생성
+    │
+    ▼
+Python 검증 (incident_copilot/validator.py, cli.py)
+    ├─ JSON/스키마 검사 (필수 키·자료형)
+    ├─ 참조 로그 ID가 입력에 실제로 존재하는지 검사
+    └─ 빈 필드·과확신 표현 같은 단순 규칙 경고
+    │
+    ▼
+사람 — 원인이 실제로 타당한지, 어떤 조치를 할지 최종 판단
+```
+
+- **AI**: 원인 후보·확인 방법 생성
+- **Python**: 형식과 로그 ID 존재 여부처럼 기계적으로 확인 가능한 부분만 검증
+- **사람**: 내용이 실제로 맞는지, 무엇을 할지 최종 판단
+
+## 주장 → 증거
+
+아래는 이 README가 하는 주요 주장과, 그걸 직접 열어서 확인할 수 있는 실제 파일이다.
+
+| 확인할 주장 | 실제 증거 |
+|---|---|
+| 실제 로컬 LLM을 호출했다 | [`evidence/result_incident_1_normal.json`](evidence/result_incident_1_normal.json) |
+| AI 답변이 부실할 수 있다(형식은 통과해도 내용이 부실함) | [`evidence/result_incident_2_tricky.json`](evidence/result_incident_2_tricky.json) |
+| ITS CCTV 사례를 조치 전/후로 실제 평가했다 | [`evidence/result_adapter_before.json`](evidence/result_adapter_before.json), [`evidence/result_adapter_after.json`](evidence/result_adapter_after.json) |
+| 평가 기준을 모델 실행 전에 고정했다 | [`docs/eval_criteria_adapter_case.md`](docs/eval_criteria_adapter_case.md) |
+| 실패·미충족 사례를 숨기지 않았다 | [`docs/eval_result_adapter_case.md`](docs/eval_result_adapter_case.md) |
+| 검증 로직을 회귀 테스트했다 | `pytest` 25개 + [`.github/workflows/tests.yml`](.github/workflows/tests.yml) (GitHub Actions) |
+
 ## 한눈에 보기 (심사위원용 요약)
 
 | 항목 | 내용 |
@@ -31,6 +66,8 @@ SK하이닉스 AI 해커톤 2026 제출용 개인 포트폴리오이며, 기존�
 
 이 프로젝트는 LLM(거대 언어모델)에게 장애 로그를 주고 "의심 원인 / 그 판단에 쓴 로그 ID / 다음 확인 방법 / 아직 모르는 것"을 강제로 구조화해서 답하게 하고, **AI가 인용한 로그 ID가 실제로 입력에 있는지**를 프로그램이 자동으로 검사한다. 다만 이 검사는 "그 로그 ID가 실제로 존재하는가"만 확인하는 것이며, "그 로그가 정말로 원인을 입증하는가"는 검사하지 않는다 — 그 부분은 사람이 로그 내용을 직접 읽고 판단해야 한다. 이 구분을 프로그램 출력과 결과 파일에 명시적으로 분리해서 보여준다.
 
+**왜 LLM인가**: 규칙 기반 코드는 "필수 키가 있는가", "로그 ID가 실제 존재하는가", "형식이 맞는가"처럼 정답 조건이 명확한 검증에 쓰고, LLM은 입력마다 달라지는 장애 상황에서 "가능한 원인 후보 / 다음 확인 방법 / 아직 모르는 것"을 생성하는 역할을 맡겼다. 즉 LLM과 규칙 기반 코드를 경쟁시키는 구조가 아니라, 각자 잘하는 일을 나눠 맡는 구조다.
+
 ## 2. 내 ITS 현장 경험과의 연결
 
 ITS는 여기서 "IT 서비스"가 아니라 **지능형교통체계(Intelligent Transport Systems)**를 의미한다. 나는 ITS 현장에서 CCTV/VMS 등 장비의 유지보수 경험이 있다. 현장에서 장비 장애가 발생했을 때 실제로 겪는 상황은 이 프로젝트의 문제 정의와 거의 같다.
@@ -49,8 +86,10 @@ ITS는 여기서 "IT 서비스"가 아니라 **지능형교통체계(Intelligent
 - Python: 3.14.7
 - Ollama: 0.34.4, 모델 `llama3.2:1b`
 
-`llama3.2:1b`를 고른 이유: 로컬 PC에서 재현 가능한 최소 모델을 사용했으며, 이번 프로젝트의 초점은
-모델 성능 경쟁이 아니라 낮은 품질의 AI 응답도 검증 가능한 구조를 만드는 데 있다.
+**모델 선택 이유**: 로컬 PC에서 누구나 쉽게 재현할 수 있는 소형 모델 `llama3.2:1b`를 썼다. 목표는
+최고 성능 모델을 고르는 것이 아니라, 품질이 완벽하지 않은 AI 응답에서도 무엇을 기계적으로 검증할
+수 있고 무엇부터는 사람이 판단해야 하는지를 확인하는 것이었다. 그래서 이 모델이 실제로 낸 낮은
+품질의 응답(문장 반복, 외국어 혼입 등, §5·§9)도 지우거나 다듬지 않고 실패 사례로 그대로 보존했다.
 
 ```powershell
 # 1) 가상환경(venv, virtual environment = 프로젝트 전용 파이썬 환경) 생성
