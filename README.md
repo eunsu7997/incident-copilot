@@ -289,6 +289,7 @@ push 이후 `gh run view 36123300366`으로 직접 확인한 결과, **Python 3.
 - **미완료**: 작은 모델(1B)의 출력 품질이 낮을 때가 있다 (4-3 샘플 2, §8 참고: 의미 없는 문장 반복, 간헐적으로 한국어 대신 영어로 답변).
 - **미완료**: JSON 파싱 정규화는 이번에 발견한 "키 공백"과 "로그 ID에 대괄호 포함" 두 패턴만 고쳤다. 다른 형태로 JSON이 깨지는 경우까지 전부 방어하지는 못한다.
 - **미완료**: Ollama 응답이 120초를 넘으면 타임아웃 처리하도록 되어 있는데(§8 참고), 실제로 한 번 이 타임아웃이 발생했다. 관찰한 1건은 재시도 후 응답을 받았다. 타임아웃 값을 늘리거나 재시도 로직을 자동화하지는 않았다.
+- **미완료**: 반복/외국어 혼입 같은 응답 품질 저하는 현재 검증 로직이 잡아내지 못한다. CCTV 어댑터 사례(§9)를 사람이 직접 검토하는 과정에서 발견했다 — `llama3.2:1b`가 `next_steps`를 거의 동일한 문장으로 5개 중 3~4개를 반복하고, 그 문장에 독일어 단어("prüfen")가 한국어 문장 사이에 그대로 섞여 나왔다. JSON 형식은 유효했고 인용한 로그 ID도 전부 실제로 존재했기 때문에, 이 프로그램의 자동 검증(형식 검사·ID 존재 확인)은 이 문제에 대해 아무 경고도 내지 않았다. 자세한 내용은 `docs/eval_result_adapter_case.md`의 "검토 중 새로 확인된 문제" 참고.
 - **의도적으로 만들지 않음** (범위 제외, 실패 아님): 웹 화면, Kubernetes, GPU 서버, 데이터베이스.
 
 ## 6. AI에게 맡긴 일 vs 사람이 판단해야 하는 일
@@ -354,8 +355,10 @@ ITS 현장 CCTV 어댑터 장애를 "조치 전"(`data/sample_incident_7_adapter
 평가했다.
 
 - 평가 기준(모델 실행 전 고정, 커밋 `ffde538`): [`docs/eval_criteria_adapter_case.md`](docs/eval_criteria_adapter_case.md)
-- 평가 결과(판정 초안은 Claude Code가 작성, 사람이 실제 응답과 대조해 최종 검토 완료 — 사례 2건에 한정, 일반화 아님): [`docs/eval_result_adapter_case.md`](docs/eval_result_adapter_case.md)
+- 평가 결과(판정 초안은 Claude Code가 작성, 사람이 실제 응답과 대조해 최종 검토 완료 — **전부 통과라는 뜻은 아님**, 사례 2건에 한정, 일반화 아님): [`docs/eval_result_adapter_case.md`](docs/eval_result_adapter_case.md)
 - GitHub에서 바로 볼 수 있는 원본 사본: [`evidence/result_adapter_before.json`](evidence/result_adapter_before.json), [`evidence/result_adapter_after.json`](evidence/result_adapter_after.json)
 - 요약: 5개 기준 중 "과확정 방지"와 "불확실성 유지"는 충족, "구체적 확인 방법 제안"과 "복구 사실
-  반영"은 미충족, "로그 ID 근거"는 두 사례 모두 충족. 자세한 근거 문장은 위 결과 문서 참고.
+  반영"은 **미충족**, "로그 ID 근거"는 두 사례 모두 충족. 사람 검토 과정에서 문장 반복·외국어 혼입
+  같은 응답 품질 저하도 새로 확인됐다(§5 참고) — 이는 자동 검증(형식·로그 ID 검사)으로는 잡히지
+  않는 문제였다. 자세한 근거 문장은 위 결과 문서 참고.
 - 2분 시연 순서(실제 사용한 명령·결과 파일 경로 포함): [`docs/demo_guide.md`](docs/demo_guide.md)
