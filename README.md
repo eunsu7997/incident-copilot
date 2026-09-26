@@ -355,7 +355,7 @@ ITS 현장 CCTV 어댑터 장애를 "조치 전"(`data/sample_incident_7_adapter
 평가했다.
 
 - 평가 기준(모델 실행 전 고정, 커밋 `ffde538`): [`docs/eval_criteria_adapter_case.md`](docs/eval_criteria_adapter_case.md)
-- 평가 결과(판정 초안은 Claude Code가 작성·자체 재확인함, 최종 제출 전 사람 확인 필요 — 사례 2건에 한정, 일반화 아님): [`docs/eval_result_adapter_case.md`](docs/eval_result_adapter_case.md)
+- 평가 결과(판정 초안은 Claude Code가 작성, 사람이 실제 응답과 대조해 최종 검토 완료 — 사례 2건에 한정, 일반화 아님): [`docs/eval_result_adapter_case.md`](docs/eval_result_adapter_case.md)
 - GitHub에서 바로 볼 수 있는 원본 사본: [`evidence/result_adapter_before.json`](evidence/result_adapter_before.json), [`evidence/result_adapter_after.json`](evidence/result_adapter_after.json)
 - 요약: 5개 기준 중 "과확정 방지"와 "불확실성 유지"는 충족, "구체적 확인 방법 제안"과 "복구 사실
   반영"은 미충족, "로그 ID 근거"는 두 사례 모두 충족. 자세한 근거 문장은 위 결과 문서 참고.

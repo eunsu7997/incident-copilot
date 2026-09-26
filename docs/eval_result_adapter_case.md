@@ -1,14 +1,11 @@
 # 평가 결과 — CCTV 네트워크 어댑터 장애 사례 (조치 전 / 조치 후)
 
-> **평가 판정 초안은 Claude Code가 작성했으며, 최종 제출 전 사람(사용자)이 원본 응답과 평가 근거를
-> 직접 확인해야 한다.** SK하이닉스 해커톤 2026 제출 전 최종 점검 과정에서 Claude Code가 아래 표의
-> 판정을 `evidence/result_adapter_before.json`·`evidence/result_adapter_after.json`(=
+> **사람(사용자) 최종 검토 완료 (2026-09-26).** 평가 판정 초안은 Claude Code가 작성했다. 사용자가
+> `evidence/result_adapter_before.json`과 `evidence/result_adapter_after.json`(=
 > `outputs/result_INC-2026-0007_...json`·`outputs/result_INC-2026-0008_...json`과 동일)의 실제
-> `raw_llm_response`·`parsed_analysis` 값과 다시 대조해 인용문이 원본과 정확히 일치하는지 재확인했다
-> — 하지만 이건 Claude Code 자신의 재확인일 뿐, **사람이 검토를 마쳤다는 뜻은 아니다.** 아래는 사례
-> 딱 2건(조치 전 1건 + 조치 후 1건)에 대한 결과이며, 이 프로젝트 전체의 정확도나 성능을 일반화한
-> 결론이 아니다. 기준은 `docs/eval_criteria_adapter_case.md`에 모델 실행 **전에** 고정해 두었다
-> (커밋 `ffde538`).
+> 응답 내용을 직접 확인했고, 아래 표의 평가 판정에 동의했다. 아래는 사례 딱 2건(조치 전 1건 + 조치
+> 후 1건)에 대한 결과이며, 이 프로젝트 전체의 정확도나 성능을 일반화한 결론이 아니다. 기준은
+> `docs/eval_criteria_adapter_case.md`에 모델 실행 **전에** 고정해 두었다(커밋 `ffde538`).
 
 ## 실행 기록 (재시도 원칙 관련)
 
