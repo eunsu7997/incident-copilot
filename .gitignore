@@ -5,3 +5,4 @@ __pycache__/
 outputs/*.json
 !outputs/.gitkeep
 *.zip
+.claude/
