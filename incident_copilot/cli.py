@@ -18,6 +18,7 @@ from pathlib import Path
 
 from .data_loader import load_incident
 from .ollama_client import call_ollama, OllamaError
+from .security import mask_sensitive, safe_filename_part
 from .validator import parse_ai_response, validate
 
 DEFAULT_MODEL = "llama3.2:1b"
@@ -63,13 +64,20 @@ def run(argv=None) -> int:
             f"{args.incident_file}\n  {e}"
         )
         return 3
-    prompt_text = incident.to_prompt_text()
+    except ValueError as e:
+        print(f"[입력 오류] 장애 파일의 로그 내용이 올바르지 않습니다: {args.incident_file}\n  {e}")
+        return 3
+    # 로그에 토큰·비밀번호·이메일·IP 같은 민감정보가 섞여 있을 수 있으므로,
+    # LLM에 보내기 전(그리고 결과 파일에 저장하기 전)에 가린다.
+    prompt_text, prompt_masking = mask_sensitive(incident.to_prompt_text())
 
     print("=" * 60)
     print(f"[입력 장애] {incident.incident_id} - {incident.service_name}")
     print(f"상태 요약: {incident.status_summary}")
     print(f"로그 {len(incident.logs)}건 (아래는 가상 데이터입니다)")
     print("=" * 60)
+    if prompt_masking:
+        print(f"[민감정보 가림] LLM에 보내기 전에 가린 항목: {prompt_masking}")
 
     if args.no_llm:
         print("--no-llm 옵션이 켜져 있어 실제 LLM 호출을 하지 않았습니다.")
@@ -106,6 +114,7 @@ def run(argv=None) -> int:
                 warnings=[],
                 raw_response=None,
                 is_offline_replay=False,
+                prompt_masking=prompt_masking,
             )
             return 1
 
@@ -129,6 +138,7 @@ def run(argv=None) -> int:
             warnings=[],
             raw_response=raw_response,
             is_offline_replay=is_offline_replay,
+            prompt_masking=prompt_masking,
         )
         return 2
 
@@ -176,8 +186,13 @@ def run(argv=None) -> int:
         is_offline_replay=is_offline_replay,
         existing_ids=result.existing_ids,
         missing_ids=result.missing_ids,
+        prompt_masking=prompt_masking,
     )
     return 0
+
+
+def _masked(text):
+    return mask_sensitive(text)[0]
 
 
 def _save_result(
@@ -194,13 +209,18 @@ def _save_result(
     is_offline_replay,
     existing_ids=None,
     missing_ids=None,
+    prompt_masking=None,
 ):
     OUTPUT_DIR.mkdir(exist_ok=True)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     # 같은 incident_id를 같은 초(1초 단위 타임스탬프)에 두 번 이상 실행하면 파일명이 겹칠 수
     # 있어서, 짧은 UUID를 붙여 항상 서로 다른 파일로 저장되도록 한다.
     unique_suffix = uuid.uuid4().hex[:8]
-    out_path = OUTPUT_DIR / f"result_{incident_id}_{timestamp}_{unique_suffix}.json"
+    # incident_id는 입력 파일에서 온 값이라 '../' 같은 경로 문자가 들어올 수 있다.
+    # 파일 이름에는 안전한 문자만 남기고, 원래 값은 JSON 안의 incident_id에만 보존한다.
+    out_path = OUTPUT_DIR / f"result_{safe_filename_part(incident_id)}_{timestamp}_{unique_suffix}.json"
+    # 모델이 입력의 민감정보를 그대로 따라 쓸 수 있으므로 저장 전에 한 번 더 가린다.
+    raw_response, response_masking = mask_sensitive(raw_response)
     payload = {
         "incident_id": incident_id,
         "model_used": model,
@@ -220,14 +240,19 @@ def _save_result(
             ),
         },
         "prompt_sent_to_llm": prompt_text,
+        "masking": {
+            "prompt": prompt_masking or {},
+            "raw_llm_response": response_masking,
+            "note": "토큰·비밀번호·이메일·IP 등 자주 나오는 민감정보 형태를 정규식으로 가린 개수. 모든 민감정보를 잡는다는 보장은 없다.",
+        },
         "raw_llm_response": raw_response,
         "parsed_analysis": None
         if analysis is None
         else {
-            "suspected_cause": analysis.suspected_cause,
+            "suspected_cause": _masked(analysis.suspected_cause),
             "referenced_log_ids": analysis.referenced_log_ids,
-            "next_steps": analysis.next_steps,
-            "unknowns": analysis.unknowns,
+            "next_steps": [_masked(x) for x in analysis.next_steps],
+            "unknowns": [_masked(x) for x in analysis.unknowns],
         },
         "validation_warnings": warnings or [],
         "id_existence_check": None
